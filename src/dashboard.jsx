@@ -93,7 +93,7 @@ function Dashboard({ role, setRoute }) {
   }, [role]);
 
   const kpis     = sbData?.kpis?.[role]  || D.kpis?.[role] || D.kpis?.admin || [];
-  const tasks    = (sbData?.tarefas?.length > 0 ? sbData.tarefas : null) || MOCK_TASKS[role] || [];
+  const tasks    = sbData !== null ? (sbData.tarefas || []) : (MOCK_TASKS[role] || []);
   const alertas  = sbData
     ? sbData.alertas
     : [...(D.alerts || [])].sort((a, b) => ({ danger: 0, warning: 1, info: 2 }[a.level] - { danger: 0, warning: 1, info: 2 }[b.level]));

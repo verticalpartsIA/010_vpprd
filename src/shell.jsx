@@ -34,10 +34,10 @@ const NAV_GROUPS = [
 ];
 
 const ROLE_MAP = {
-  comercial:   { name: "Guilherme Garcia",  initials: "GG", title: "Vendas / Líder" },
-  engenharia:  { name: "Arilene Avila",     initials: "AA", title: "Engenharia / Líder" },
-  financeiro:  { name: "Juliana Anderson",  initials: "JA", title: "Financeiro / Líder" },
-  admin:       { name: "Gelson Simoes",     initials: "GS", title: "Administrador" },
+  comercial:   { name: "Comercial",   initials: "CO", title: "Perfil Comercial" },
+  engenharia:  { name: "Engenharia",  initials: "EN", title: "Perfil Engenharia" },
+  financeiro:  { name: "Financeiro",  initials: "FI", title: "Perfil Financeiro" },
+  admin:       { name: "Admin",       initials: "AD", title: "Perfil Admin" },
 };
 
 function Sidebar({ route, setRoute, role, collapsed, onToggle }) {
