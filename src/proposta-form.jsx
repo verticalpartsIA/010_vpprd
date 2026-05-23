@@ -247,40 +247,40 @@ function S_Cliente({ d, set }) {
   return (
     <div className="pe-grid cols-3">
       <PEField label="Nome do Cliente" required span="2">
-        <PETextInput value={d.cliente.nome} onChange={(v) => set("cliente.nome", v)} placeholder="Cond. Park Tower Itaim Ltda"/>
+        <PETextInput value={d.cliente.nome} onChange={(v) => set("cliente.nome", v)} placeholder="Nome do cliente / empresa"/>
       </PEField>
       <PEField label="CNPJ" required>
         <PETextInput value={d.cliente.cnpj} onChange={(v) => set("cliente.cnpj", v)} placeholder="00.000.000/0001-00"/>
       </PEField>
 
       <PEField label="A/C Responsável" span="2">
-        <PETextInput value={d.cliente.responsavel} onChange={(v) => set("cliente.responsavel", v)} placeholder="André Pessoa — Síndico"/>
+        <PETextInput value={d.cliente.responsavel} onChange={(v) => set("cliente.responsavel", v)} placeholder="Nome — Cargo"/>
       </PEField>
       <PEField label="Telefone">
-        <PETextInput value={d.cliente.telefone} onChange={(v) => set("cliente.telefone", v)} placeholder="(11) 3333-4444"/>
+        <PETextInput value={d.cliente.telefone} onChange={(v) => set("cliente.telefone", v)} placeholder="(11) 0000-0000"/>
       </PEField>
 
       <PEField label="E-mail" span="3">
-        <PETextInput type="email" value={d.cliente.email} onChange={(v) => set("cliente.email", v)} placeholder="sindico@parktower.com.br"/>
+        <PETextInput type="email" value={d.cliente.email} onChange={(v) => set("cliente.email", v)} placeholder="email@cliente.com.br"/>
       </PEField>
 
       <PEField label="Endereço" span="2">
-        <PETextInput value={d.cliente.endereco} onChange={(v) => set("cliente.endereco", v)} placeholder="Av. Brigadeiro Faria Lima"/>
+        <PETextInput value={d.cliente.endereco} onChange={(v) => set("cliente.endereco", v)} placeholder="Rua / Av."/>
       </PEField>
       <PEField label="Número">
-        <PENumber value={d.cliente.numero} onChange={(v) => set("cliente.numero", v)} placeholder="3477"/>
+        <PENumber value={d.cliente.numero} onChange={(v) => set("cliente.numero", v)} placeholder="Nº"/>
       </PEField>
       <PEField label="Bairro">
-        <PETextInput value={d.cliente.bairro} onChange={(v) => set("cliente.bairro", v)} placeholder="Itaim Bibi"/>
+        <PETextInput value={d.cliente.bairro} onChange={(v) => set("cliente.bairro", v)} placeholder="Bairro"/>
       </PEField>
       <PEField label="Cidade">
-        <PETextInput value={d.cliente.cidade} onChange={(v) => set("cliente.cidade", v)} placeholder="São Paulo"/>
+        <PETextInput value={d.cliente.cidade} onChange={(v) => set("cliente.cidade", v)} placeholder="Cidade"/>
       </PEField>
       <PEField label="Estado (UF)">
         <PESelect value={d.cliente.uf} onChange={(v) => set("cliente.uf", v)} options={UF_LIST} placeholder="UF"/>
       </PEField>
       <PEField label="CEP">
-        <PETextInput value={d.cliente.cep} onChange={(v) => set("cliente.cep", v)} placeholder="04538-133"/>
+        <PETextInput value={d.cliente.cep} onChange={(v) => set("cliente.cep", v)} placeholder="00000-000"/>
       </PEField>
     </div>
   );
@@ -290,26 +290,26 @@ function S_Obra({ d, set }) {
   return (
     <div className="pe-grid cols-3">
       <PEField label="Nome do Empreendimento" required span="3">
-        <PETextInput value={d.obra.nome} onChange={(v) => set("obra.nome", v)} placeholder="Ed. Park Tower Itaim"/>
+        <PETextInput value={d.obra.nome} onChange={(v) => set("obra.nome", v)} placeholder="Nome do empreendimento"/>
       </PEField>
 
       <PEField label="Endereço" span="2">
-        <PETextInput value={d.obra.endereco} onChange={(v) => set("obra.endereco", v)} placeholder="Av. Brigadeiro Faria Lima"/>
+        <PETextInput value={d.obra.endereco} onChange={(v) => set("obra.endereco", v)} placeholder="Rua / Av."/>
       </PEField>
       <PEField label="Número">
-        <PENumber value={d.obra.numero} onChange={(v) => set("obra.numero", v)} placeholder="3477"/>
+        <PENumber value={d.obra.numero} onChange={(v) => set("obra.numero", v)} placeholder="Nº"/>
       </PEField>
       <PEField label="Bairro">
-        <PETextInput value={d.obra.bairro} onChange={(v) => set("obra.bairro", v)} placeholder="Itaim Bibi"/>
+        <PETextInput value={d.obra.bairro} onChange={(v) => set("obra.bairro", v)} placeholder="Bairro"/>
       </PEField>
       <PEField label="Cidade">
-        <PETextInput value={d.obra.cidade} onChange={(v) => set("obra.cidade", v)} placeholder="São Paulo"/>
+        <PETextInput value={d.obra.cidade} onChange={(v) => set("obra.cidade", v)} placeholder="Cidade"/>
       </PEField>
       <PEField label="Estado (UF)">
         <PESelect value={d.obra.uf} onChange={(v) => set("obra.uf", v)} options={UF_LIST}/>
       </PEField>
       <PEField label="CEP" span="3">
-        <PETextInput value={d.obra.cep} onChange={(v) => set("obra.cep", v)} placeholder="04538-133"/>
+        <PETextInput value={d.obra.cep} onChange={(v) => set("obra.cep", v)} placeholder="00000-000"/>
       </PEField>
     </div>
   );

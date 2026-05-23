@@ -8,16 +8,19 @@
 
 /* Default data structure */
 function makeDefaultProposta() {
+  const hoje = new Date();
+  const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  const anoAtual = hoje.getFullYear();
   return {
-    numero: "VP-2026-007",
-    dataLinha: "São Paulo, 13 de maio de 2026",
+    numero: `VP-${anoAtual}-001`,
+    dataLinha: `São Paulo, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${anoAtual}`,
     validade: "30 dias",
-    vendedor: { nome: "Letícia Magalhães", celular: "(11) 98821-4477", fixo: "(11) 2528-6473", email: "leticia@verticalparts.com.br" },
-    cliente: { nome: "Cond. Park Tower Itaim Ltda", cnpj: "27.184.339/0001-44", responsavel: "André Pessoa — Síndico",
-      endereco: "Av. Brigadeiro Faria Lima", numero: "3477", bairro: "Itaim Bibi", cidade: "São Paulo", uf: "SP", cep: "04538-133",
-      email: "sindico@parktower.com.br", telefone: "(11) 3333-4444" },
-    obra: { nome: "Ed. Park Tower Itaim", endereco: "Av. Brigadeiro Faria Lima", numero: "3477",
-      bairro: "Itaim Bibi", cidade: "São Paulo", uf: "SP", cep: "04538-133" },
+    vendedor: { nome: "", celular: "", fixo: "", email: "" },
+    cliente: { nome: "", cnpj: "", responsavel: "",
+      endereco: "", numero: "", bairro: "", cidade: "", uf: "", cep: "",
+      email: "", telefone: "" },
+    obra: { nome: "", endereco: "", numero: "",
+      bairro: "", cidade: "", uf: "", cep: "" },
 
     elevador: {
       textoProposta: "Prezado(a) cliente,\n\nÉ com satisfação que apresentamos nossa proposta comercial para o fornecimento de elevador VPELEV VP-P, com tecnologia gearless e atendimento à NBR 16858.",
@@ -48,14 +51,14 @@ function makeDefaultProposta() {
       caracteristicas: ["Sistema de tração gearless de alta eficiência energética", "Comando microprocessado MAX-3000 com prioridade de chamadas inteligente"],
       recursos: ["Resgate automático em falta de energia (ARD)", "Comunicação bidirecional integrada à central 24h"],
       infraestrutura: ["Casa de máquinas dimensionada conforme NBR 16858", "Aterramento próprio para o quadro de comando"],
-      valores: { equipamento: "Elevador de Passageiros VPELEV VP-P", quantidade: "1", valorUnit: "480.000,00", difal: "12.500,00",
+      valores: { equipamento: "Elevador de Passageiros VPELEV VP-P", quantidade: "1", valorUnit: "", difal: "",
         forma: "40% à vista e 4 parcelas",
         parcelas: [
-          { desc: "Sinal de 40% na assinatura do contrato", valor: "192.000,00" },
-          { desc: "1ª PARCELA", valor: "72.000,00" },
-          { desc: "2ª PARCELA", valor: "72.000,00" },
-          { desc: "3ª PARCELA", valor: "72.000,00" },
-          { desc: "4ª PARCELA", valor: "72.000,00" },
+          { desc: "Sinal de 40% na assinatura do contrato", valor: "" },
+          { desc: "1ª PARCELA", valor: "" },
+          { desc: "2ª PARCELA", valor: "" },
+          { desc: "3ª PARCELA", valor: "" },
+          { desc: "4ª PARCELA", valor: "" },
         ]},
       condicoesPagto: { venda: "", impostos: "", ajusteFrete: "", reajuste: "" },
       ajustes: { preset: "sp", cambio: "5,50", faturamento: "", reajuste: "Reajuste anual conforme IPCA acumulado.",
