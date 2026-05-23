@@ -5,22 +5,22 @@
 const NAV_GROUPS = [
   { label: "Geral", items: [
     { id: "dashboard", label: "Dashboard", icon: "home" },
-    { id: "notificacoes", label: "Notificações", icon: "bell", badge: 3 },
+    { id: "notificacoes", label: "Notificações", icon: "bell" },
   ]},
   { label: "Comercial", items: [
     { id: "leads", label: "Leads", icon: "flag" },
-    { id: "cotacoes", label: "Cotações China", icon: "globe", badge: 2 },
+    { id: "cotacoes", label: "Cotações China", icon: "globe" },
     { id: "precificacao", label: "Precificação", icon: "calculator", restrict: ["financeiro", "admin"] },
     { id: "propostas", label: "Propostas", icon: "proposal" },
   ]},
   { label: "Operações", items: [
     { id: "engenharia", label: "Engenharia", icon: "ruler" },
-    { id: "ncm-kanban", label: "Solicitações NCM", icon: "package", badge: 6 },
+    { id: "ncm-kanban", label: "Solicitações NCM", icon: "package" },
     { id: "juridico", label: "Jurídico", icon: "scale" },
     { id: "instalacao", label: "Instalação", icon: "hardhat" },
   ]},
   { label: "Logística", items: [
-    { id: "importacao", label: "Importação", icon: "ship", badge: 9 },
+    { id: "importacao", label: "Importação", icon: "ship" },
     { id: "ncm-catalogo", label: "Catálogo de Produtos", icon: "fileSearch" },
     { id: "compras", label: "Compras Nacional", icon: "truck" },
   ]},

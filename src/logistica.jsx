@@ -27,17 +27,17 @@ function ImportacaoPage({ setRoute, setSubsel }) {
           <p className="page-head__sub">Embarques em trânsito + rastreamento marítimo (MarineTraffic API) + inbox de emails sincronizada</p>
         </div>
         <div className="page-head__r">
-          <Button variant="outline" icon="mail" onClick={() => setRoute("importacao-email")}>Inbox <span style={{ background: "var(--vp-yellow)", color: "#000", padding: "1px 6px", marginLeft: 6, fontFamily: "var(--font-mono)", fontSize: 10 }}>2</span></Button>
+          <Button variant="outline" icon="mail" onClick={() => setRoute("importacao-email")}>Inbox</Button>
           <Button variant="outline" icon="globe" onClick={() => setRoute("importacao-rastreamento")}>Mapa de navios</Button>
-          <Button variant="primary" icon="plus">Novo embarque</Button>
+          <Button variant="primary" icon="plus" onClick={() => window.toast("Novo embarque — próxima fase", "info")}>Novo embarque</Button>
         </div>
       </div>
 
       <div className="grid-4" style={{ marginBottom: 20 }}>
-        <KPI label="Em trânsito" value="9" sub="navios ativos" delta="+2" deltaDir="up" icon="ship"/>
-        <KPI label="Aguard. liberação" value="3" sub="aduana" delta="0" deltaDir="flat" icon="package"/>
-        <KPI label="Alertas ETA" value="2" sub="atrasos" delta="+1" deltaDir="down" icon="warning"/>
-        <KPI label="Valor em trânsito" value="USD 1.8" unit="M" sub="14 BLs" delta="+USD 380k" deltaDir="up" icon="dollar"/>
+        <KPI label="Em trânsito" value={embarques.filter(e => e.status === "Em trânsito").length} sub="navios ativos" icon="ship"/>
+        <KPI label="Aguard. liberação" value={embarques.filter(e => e.status === "Liberação aduaneira").length} sub="aduana" icon="package"/>
+        <KPI label="Alertas ETA" value="—" sub="sem dados suficientes" icon="warning"/>
+        <KPI label="Valor em trânsito" value="—" sub="sem dados suficientes" icon="dollar"/>
       </div>
 
       <Tabs tabs={[
@@ -452,15 +452,15 @@ function ComprasPage({ setRoute }) {
         </div>
         <div className="page-head__r">
           <Button variant="outline" icon="mail" onClick={() => setRoute("compras-email")}>Inbox</Button>
-          <Button variant="primary" icon="plus">Novo frete</Button>
+          <Button variant="primary" icon="plus" onClick={() => window.toast("Novo frete — próxima fase", "info")}>Novo frete</Button>
         </div>
       </div>
 
       <div className="grid-4" style={{ marginBottom: 20 }}>
-        <KPI label="Em rota" value="3" sub="ativos" delta="+1" deltaDir="up" icon="truck"/>
-        <KPI label="Entregues (semana)" value="14" sub="OK" delta="+3" deltaDir="up" icon="check"/>
-        <KPI label="Ocorrências" value="2" sub="abertas" delta="+1" deltaDir="down" icon="warning"/>
-        <KPI label="Custo médio frete" value="R$ 4.2" unit="k" sub="por entrega" delta="-R$ 0.3k" deltaDir="up" icon="dollar"/>
+        <KPI label="Em rota" value={fretes.filter(f => f.status === "Em rota" || f.status === "Em trânsito").length} sub="ativos" icon="truck"/>
+        <KPI label="Entregues (semana)" value={fretes.filter(f => f.status === "Entregue").length} sub="OK" icon="check"/>
+        <KPI label="Ocorrências" value={fretes.filter(f => f.ocorrencias > 0).length} sub="abertas" icon="warning"/>
+        <KPI label="Custo médio frete" value="—" sub="sem dados suficientes" icon="dollar"/>
       </div>
 
       <div className="tbar">
