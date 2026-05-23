@@ -162,8 +162,8 @@ function CatDetailDados({ p }) {
   return (
     <div className="stack">
       <KvBlock label="Código NCM" value={p.ncm ? `${p.ncm} — ${p.ncmDesc}` : "—"} mono/>
-      <KvBlock label="Projeto vinculado" value={p.projeto}/>
-      <KvBlock label="Engenheiro" value={p.engenheiro}/>
+      <KvBlock label="Projeto vinculado" value={p.projeto || "—"}/>
+      <KvBlock label="Engenheiro" value={p.engenheiro || "—"}/>
       {p.aprovadoPor ? <KvBlock label="Aprovado por (Jurídico)" value={p.aprovadoPor}/> : null}
       {fab ? (
         <>
@@ -289,8 +289,12 @@ function NcmKanbanPage({ setRoute, setSubsel }) {
                               : <div className="kanban__card-ncm muted">NCM pendente</div>}
                       <div className="kanban__card-foot">
                         <span className="who">
-                          <div className="avatar sm">{p.engenheiro.split(" ").map(w => w[0]).join("").slice(0,2)}</div>
-                          {p.engenheiro.split(" ")[0]}
+                          {p.engenheiro ? (
+                            <>
+                              <div className="avatar sm">{p.engenheiro.split(" ").map(w => w[0]).join("").slice(0,2)}</div>
+                              {p.engenheiro.split(" ")[0]}
+                            </>
+                          ) : <span className="muted" style={{ fontSize: 11 }}>—</span>}
                         </span>
                         <span>{fab ? fab.flag : ""}</span>
                         <span className="mono">{p.updatedAt}</span>
