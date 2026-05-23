@@ -45,10 +45,10 @@ function NcmCatalogoPage({ setRoute }) {
       </div>
 
       <div className="grid-4" style={{ marginBottom: 20 }}>
-        <KPI label="Produtos ativos" value={stats.ativos} sub="cadastrados Siscomex" delta="+2" deltaDir="up" icon="package"/>
-        <KPI label="Aguard. jurídico" value={stats.juridico} sub="em validação" delta="+1" deltaDir="down" icon="scale"/>
-        <KPI label="Em preenchimento" value={stats.preench} sub="rascunhos" delta="0" deltaDir="flat" icon="edit"/>
-        <KPI label="NCMs distintas" value={stats.ncms} sub="códigos em uso" delta="+1" deltaDir="up" icon="globe"/>
+        <KPI label="Produtos ativos" value={stats.ativos} sub="cadastrados Siscomex" icon="package"/>
+        <KPI label="Aguard. jurídico" value={stats.juridico} sub="em validação" icon="scale"/>
+        <KPI label="Em preenchimento" value={stats.preench} sub="rascunhos" icon="edit"/>
+        <KPI label="NCMs distintas" value={stats.ncms} sub="códigos em uso" icon="globe"/>
       </div>
 
       <div className="tbar">

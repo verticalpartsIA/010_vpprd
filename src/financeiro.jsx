@@ -233,7 +233,7 @@ function NotificacoesPage({ setRoute }) {
         <div className="page-head__l">
           <div className="page-head__eyebrow"><span className="vp-rule"/>Central</div>
           <h1 className="page-head__title">Notificações</h1>
-          <p className="page-head__sub">3 não lidas · agrupadas por módulo · respostas rápidas inline</p>
+          <p className="page-head__sub">Agrupadas por módulo · respostas rápidas inline</p>
         </div>
         <div className="page-head__r">
           <Button variant="outline" icon="settings" onClick={() => window.toast("Tela de preferências em breve", "info")}>Preferências</Button>
@@ -318,36 +318,42 @@ function ConfiguracoesPage() {
 }
 
 function ConfigUsers() {
-  const users = [
-    { name: "Wilson Ferreira", role: "Admin", email: "wilson@verticalparts.com.br", last: "agora", active: true },
-    { name: "Letícia Magalhães", role: "Comercial Sr.", email: "leticia@verticalparts.com.br", last: "10 min", active: true },
-    { name: "Bruno Pacheco", role: "Comercial Pleno", email: "bruno@verticalparts.com.br", last: "1 h", active: true },
-    { name: "Daniel Otsuka", role: "Eng. Comercial", email: "daniel@verticalparts.com.br", last: "2 h", active: true },
-    { name: "Cláudia Bertolini", role: "Gerente Financeiro", email: "claudia@verticalparts.com.br", last: "4 h", active: true },
-    { name: "Marina Aragão", role: "Jurídico", email: "marina@verticalparts.com.br", last: "ontem", active: true },
-    { name: "Renan Bertoli", role: "Engenharia", email: "renan@verticalparts.com.br", last: "ontem", active: true },
-    { name: "Sandro Pellicano", role: "Instalação · Líder", email: "sandro@verticalparts.com.br", last: "ontem", active: true },
-  ];
+  const [users, setUsers] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    window.__VP_SB.sb.from('usuarios').select('*').order('name')
+      .then(({ data }) => { setUsers(data || []); setLoading(false); });
+  }, []);
+
+  if (loading) return <div style={{ textAlign:'center', padding:'32px 0', color:'var(--fg3)', fontSize:13 }}>Carregando…</div>;
+
   return (
-    <Card title="Usuários" sub={`${users.length} ativos`} action={<Button variant="primary" size="sm" icon="plus">Convidar usuário</Button>}>
+    <Card title="Usuários" sub={`${users.length} cadastrados`}
+      action={<Button variant="primary" size="sm" icon="plus" onClick={() => window.toast("Convite de usuário — próxima fase", "info")}>Convidar usuário</Button>}>
       <div className="table-wrap" style={{ border: 0 }}>
         <table className="t">
           <thead><tr>
             <th>Nome</th><th>Perfil</th><th>Email</th><th>Último login</th><th>Status</th><th></th>
           </tr></thead>
           <tbody>
+            {users.length === 0 && (
+              <tr><td colSpan={99} style={{ textAlign:'center', padding:'48px 0', color:'var(--fg3)', fontSize:13 }}>
+                Nenhum usuário cadastrado.
+              </td></tr>
+            )}
             {users.map(u => (
-              <tr key={u.email}>
+              <tr key={u.id || u.email}>
                 <td>
                   <div className="row gap-3">
-                    <div className="avatar">{u.name.split(" ").map(w => w[0]).join("").slice(0,2)}</div>
-                    <span className="cell-main">{u.name}</span>
+                    <div className="avatar">{(u.name || u.email || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}</div>
+                    <span className="cell-main">{u.name || u.email}</span>
                   </div>
                 </td>
-                <td><Badge variant="ink">{u.role}</Badge></td>
+                <td><Badge variant="ink">{u.role || "—"}</Badge></td>
                 <td><span className="mono small">{u.email}</span></td>
-                <td><span className="mono small muted">{u.last}</span></td>
-                <td><Badge variant={u.active ? "success" : "neutral"} dot>{u.active ? "Ativo" : "Inativo"}</Badge></td>
+                <td><span className="mono small muted">{u.last_login ? fmtDate(u.last_login) : "—"}</span></td>
+                <td><Badge variant={u.active !== false ? "success" : "neutral"} dot>{u.active !== false ? "Ativo" : "Inativo"}</Badge></td>
                 <td><Button variant="ghost" size="sm" icon="more"/></td>
               </tr>
             ))}
@@ -440,13 +446,13 @@ function ParamRow({ label, value, mono }) {
 
 function ConfigIntegrations() {
   const integrations = [
-    { name: "MarineTraffic API", status: "Ativo", last: "8 min", desc: "Rastreamento de navios em tempo real" },
+    { name: "MarineTraffic API", status: "Ativo", last: "—", desc: "Rastreamento de navios em tempo real" },
     { name: "VesselFinder (fallback)", status: "Standby", last: "—", desc: "API secundária de rastreamento" },
-    { name: "IMAP — cotacoes@verticalparts.com.br", status: "Ativo", last: "2 min", desc: "Inbox Importação" },
-    { name: "IMAP — compras@verticalparts.com.br", status: "Ativo", last: "5 min", desc: "Inbox Compras Nacional" },
-    { name: "SMTP — envio transacional", status: "Ativo", last: "agora", desc: "Notificações e propostas" },
-    { name: "DocuSign", status: "Ativo", last: "ontem", desc: "Assinatura digital de contratos" },
-    { name: "ContaAzul (faturamento)", status: "Ativo", last: "1 h", desc: "Sincronização NF / contas a receber" },
+    { name: "IMAP — cotacoes@verticalparts.com.br", status: "Ativo", last: "—", desc: "Inbox Importação" },
+    { name: "IMAP — compras@verticalparts.com.br", status: "Ativo", last: "—", desc: "Inbox Compras Nacional" },
+    { name: "SMTP — envio transacional", status: "Ativo", last: "—", desc: "Notificações e propostas" },
+    { name: "DocuSign", status: "Ativo", last: "—", desc: "Assinatura digital de contratos" },
+    { name: "ContaAzul (faturamento)", status: "Ativo", last: "—", desc: "Sincronização NF / contas a receber" },
     { name: "WhatsApp Business API", status: "Inativo", last: "—", desc: "Notificações para vendedores" },
   ];
   return (
@@ -477,15 +483,15 @@ function ConfigIntegrations() {
 
 function ConfigBuckets() {
   const buckets = [
-    { name: "contratos-originais", files: 187, size: "1.2 GB", policy: "Privado · só Jurídico" },
-    { name: "contratos-redigidos", files: 152, size: "780 MB", policy: "Privado · vendedor+cliente" },
-    { name: "propostas-pdf", files: 312, size: "2.4 GB", policy: "Privado · vendedor" },
-    { name: "engenharia-fotos", files: 1840, size: "8.7 GB", policy: "Privado · engenharia+admin" },
-    { name: "embarques-docs", files: 624, size: "1.8 GB", policy: "Privado · log+adm" },
-    { name: "obras-laudos", files: 96, size: "420 MB", policy: "Privado · cliente final" },
+    { name: "contratos-originais", policy: "Privado · só Jurídico" },
+    { name: "contratos-redigidos", policy: "Privado · vendedor+cliente" },
+    { name: "propostas-pdf", policy: "Privado · vendedor" },
+    { name: "engenharia-fotos", policy: "Privado · engenharia+admin" },
+    { name: "embarques-docs", policy: "Privado · log+adm" },
+    { name: "obras-laudos", policy: "Privado · cliente final" },
   ];
   return (
-    <Card title="Supabase Storage Buckets" sub={`${buckets.length} buckets · ${buckets.reduce((a, b) => a + b.files, 0)} arquivos`}>
+    <Card title="Supabase Storage Buckets" sub={`${buckets.length} buckets configurados`}>
       <div className="table-wrap" style={{ border: 0 }}>
         <table className="t">
           <thead><tr><th>Bucket</th><th>Arquivos</th><th>Tamanho</th><th>Política</th><th></th></tr></thead>
@@ -493,8 +499,8 @@ function ConfigBuckets() {
             {buckets.map((b) => (
               <tr key={b.name}>
                 <td><span className="mono" style={{ fontWeight: 700 }}>{b.name}</span></td>
-                <td className="cell-num">{b.files}</td>
-                <td className="cell-num">{b.size}</td>
+                <td className="cell-num muted">—</td>
+                <td className="cell-num muted">—</td>
                 <td><Badge variant="outline">{b.policy}</Badge></td>
                 <td><Button variant="ghost" size="sm" icon="more"/></td>
               </tr>
