@@ -3,24 +3,60 @@
    ============================================================ */
 
 /* ---------- MODAL: Novo Lead ---------- */
-function ModalNovoLead({ onClose, onSaved }) {
+/* ---------- constantes do formulário de equipamentos ---------- */
+const EQUIP_OPTS = [
+  { key: 'elevador', label: 'Elevador' },
+  { key: 'escada',   label: 'Escada Rolante' },
+  { key: 'esteira',  label: 'Esteira' },
+];
+const TIPO_EQUIP_OPTS = ['Residencial','Comercial','Escritório','Escola','Hospital','Industrial','Local Público','Outro'];
+const ABERTURA_OPTS   = ['Central','Telescópica Direita','Telescópica Esquerda'];
+
+function ModalNovoLead({ onClose, onSaved, onCreateCotacao }) {
   const [f, setF] = React.useState({
     building:'', contact:'', role:'', phone:'', email:'',
-    equip:'', origin:'Site', status:'Em qualificação',
+    origin:'Site', status:'Em qualificação',
     owner:'', value:'', priority:'Alta', next:'',
   });
+  const [equips, setEquips] = React.useState({
+    elevador: { checked: false, qty: 1 },
+    escada:   { checked: false, qty: 1 },
+    esteira:  { checked: false, qty: 1 },
+  });
+  const [tipoEquip, setTipoEquip] = React.useState('');
+  const [elevSpec, setElevSpec] = React.useState({ carga: '', abertura: 'Central', vao: '', acabamento: 'Inox' });
   const [saving, setSaving] = React.useState(false);
+  const [savedLead, setSavedLead] = React.useState(null);
+
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const setElev = (k, v) => setElevSpec(p => ({ ...p, [k]: v }));
+  const setEquipField = (key, field, value) => setEquips(p => ({ ...p, [key]: { ...p[key], [field]: value } }));
+
+  const hasEquip    = Object.values(equips).some(e => e.checked);
+  const hasElevador = equips.elevador.checked;
 
   const save = async () => {
     if (!f.building.trim()) return window.toast('Prédio é obrigatório.', 'warning');
-    if (!f.contact.trim()) return window.toast('Contato é obrigatório.', 'warning');
+    if (!f.contact.trim())  return window.toast('Contato é obrigatório.', 'warning');
+    if (!hasEquip)          return window.toast('Selecione ao menos um equipamento.', 'warning');
+    if (!tipoEquip)         return window.toast('Tipo de empreendimento é obrigatório.', 'warning');
+    if (hasElevador) {
+      if (!elevSpec.carga) return window.toast('Informe a carga do elevador (kg).', 'warning');
+      if (!elevSpec.vao)   return window.toast('Informe o vão de porta (cm).', 'warning');
+    }
     setSaving(true);
     const id = 'LD-' + Date.now().toString().slice(-6);
+
+    const equipItens = EQUIP_OPTS.filter(o => equips[o.key].checked)
+      .map(o => ({ tipo: o.label, quantidade: equips[o.key].qty }));
+    const equipStr = equipItens.map(i => `${i.quantidade}× ${i.tipo}`).join(', ')
+      + ` · ${tipoEquip}`
+      + (hasElevador ? ` · ${elevSpec.carga}kg ${elevSpec.abertura}` : '');
+
     const { error } = await window.__VP_SB.sb.from('leads').insert({
       id,
       building: f.building, contact: f.contact, role: f.role || null,
-      phone: f.phone || null, email: f.email || null, equip: f.equip || null,
+      phone: f.phone || null, email: f.email || null, equip: equipStr,
       origin: f.origin, status: f.status, owner: f.owner || null,
       value: f.value ? parseFloat(f.value) : null,
       priority: ({ 'Alta': 'alta', 'Média': 'media', 'Baixa': 'baixa' }[f.priority] || 'media'),
@@ -29,8 +65,12 @@ function ModalNovoLead({ onClose, onSaved }) {
     });
     setSaving(false);
     if (error) return window.toast('Erro: ' + error.message, 'error');
-    window.toast('Lead criado com sucesso!', 'success');
-    onSaved?.(); onClose();
+    onSaved?.();
+    setSavedLead({
+      id, building: f.building, equipItens, tipoEquip,
+      elevSpec: hasElevador ? { ...elevSpec } : null,
+      totalEquip: equipItens.reduce((s, i) => s + i.quantidade, 0),
+    });
   };
 
   const fld = (label, key, type = 'text', ph = '', opts = null) => (
@@ -46,8 +86,40 @@ function ModalNovoLead({ onClose, onSaved }) {
     </div>
   );
 
+  /* ---- pós-save: confirmar criação de cotação ---- */
+  if (savedLead) {
+    return (
+      <Modal title="Lead Criado!" onClose={onClose} width={500}
+        footer={<>
+          <Button variant="ghost" onClick={onClose}>Fechar</Button>
+          {onCreateCotacao && (
+            <Button variant="primary" icon="globe"
+              onClick={() => { onClose(); onCreateCotacao(savedLead); }}>
+              Criar Cotação China →
+            </Button>
+          )}
+        </>}>
+        <div className="stack" style={{ gap: 12 }}>
+          <div style={{ background:'var(--vp-gray-50)', border:'1px solid var(--border)', padding:'14px 16px' }}>
+            <div className="up-eyebrow muted" style={{ marginBottom:6 }}>Lead criado com sucesso</div>
+            <div style={{ fontWeight:700, fontSize:15 }}>{savedLead.building}</div>
+            <div className="cell-sub" style={{ marginTop:4 }}>{savedLead.id}</div>
+            <div className="cell-sub" style={{ marginTop:4 }}>
+              {savedLead.equipItens.map(i => `${i.quantidade}× ${i.tipo}`).join(', ')}
+              {' · '}{savedLead.tipoEquip}
+              {savedLead.elevSpec && ` · ${savedLead.elevSpec.carga}kg · ${savedLead.elevSpec.abertura}`}
+            </div>
+          </div>
+          <p style={{ fontSize:13, color:'var(--fg2)', margin:0 }}>
+            Deseja criar uma cotação China para este lead agora?
+          </p>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
-    <Modal title="Novo Lead" onClose={onClose} width={580}
+    <Modal title="Novo Lead" onClose={onClose} width={600}
       footer={<>
         <Button variant="ghost" onClick={onClose}>Cancelar</Button>
         <Button variant="primary" onClick={save} disabled={saving}>
@@ -64,7 +136,88 @@ function ModalNovoLead({ onClose, onSaved }) {
           {fld('Telefone', 'phone', 'text', '(11) 9 9999-9999')}
           {fld('Email', 'email', 'email', 'contato@email.com')}
         </div>
-        {fld('Equipamento', 'equip', 'text', '4× Elevador Schindler 9300AE, 2× Escada Rolante…')}
+
+        {/* ---- EQUIPAMENTO ---- */}
+        <div style={{ border:'1px solid var(--border)', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+          <label className="up-eyebrow muted">Equipamento *</label>
+
+          {/* checkboxes + qty */}
+          {EQUIP_OPTS.map(({ key, label }) => (
+            <div key={key} style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <input type="checkbox" id={`eq-${key}`}
+                checked={equips[key].checked}
+                onChange={e => setEquipField(key, 'checked', e.target.checked)}
+                style={{ width:16, height:16, accentColor:'#f5c400', cursor:'pointer', flexShrink:0 }}/>
+              <label htmlFor={`eq-${key}`}
+                style={{ fontSize:13, fontWeight:500, cursor:'pointer', flex:1 }}>
+                {label}
+              </label>
+              {equips[key].checked && (
+                <input type="number" className="input" min="1" max="99"
+                  value={equips[key].qty}
+                  onChange={e => setEquipField(key, 'qty', Math.max(1, parseInt(e.target.value) || 1))}
+                  placeholder="Qtd"
+                  aria-label={`Quantidade de ${label}`}
+                  style={{ width:72, textAlign:'center' }}/>
+              )}
+            </div>
+          ))}
+
+          {/* tipo de empreendimento — aparece ao selecionar ao menos 1 */}
+          {hasEquip && (
+            <div className="stack" style={{ gap:4, marginTop:2 }}>
+              <label className="up-eyebrow muted">Tipo de empreendimento *</label>
+              <select className="input" value={tipoEquip} onChange={e => setTipoEquip(e.target.value)}>
+                <option value="">Selecione…</option>
+                {TIPO_EQUIP_OPTS.map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* especificações do elevador — aparece quando elevador marcado */}
+          {hasElevador && (
+            <div style={{ background:'var(--vp-gray-50)', border:'1px solid var(--border)', padding:'10px 12px', marginTop:2 }}>
+              <div style={{ fontSize:11, fontWeight:800, letterSpacing:'.1em', textTransform:'uppercase', marginBottom:10 }}>
+                Especificações do Elevador
+              </div>
+              <div className="grid-2" style={{ gap:10 }}>
+                <div className="stack" style={{ gap:4 }}>
+                  <label className="up-eyebrow muted">Carga (kg) *</label>
+                  <input className="input" type="number"
+                    value={elevSpec.carga} onChange={e => setElev('carga', e.target.value)}
+                    placeholder="Ex: 450, 600, 1000"/>
+                </div>
+                <div className="stack" style={{ gap:4 }}>
+                  <label className="up-eyebrow muted">Vão de porta (cm) *</label>
+                  <input className="input" type="text"
+                    value={elevSpec.vao} onChange={e => setElev('vao', e.target.value)}
+                    placeholder="Ex: 90, 100, 110"/>
+                </div>
+                <div className="stack" style={{ gap:4 }}>
+                  <label className="up-eyebrow muted">Tipo de abertura *</label>
+                  <select className="input" value={elevSpec.abertura} onChange={e => setElev('abertura', e.target.value)}>
+                    {ABERTURA_OPTS.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="stack" style={{ gap:4 }}>
+                  <label className="up-eyebrow muted">Acabamento *</label>
+                  <div style={{ display:'flex', gap:20, alignItems:'center', height:32 }}>
+                    {['Bege','Inox'].map(op => (
+                      <label key={op} style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer', fontSize:13 }}>
+                        <input type="radio" name="elev-acabamento" value={op}
+                          checked={elevSpec.acabamento === op}
+                          onChange={() => setElev('acabamento', op)}
+                          style={{ accentColor:'#f5c400' }}/>
+                        {op}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="grid-2" style={{ gap:12 }}>
           {fld('Origem', 'origin', 'text', '', ['Site','Indicação','LinkedIn','Cold Call','Evento','WhatsApp','Email'])}
           {fld('Prioridade', 'priority', 'text', '', ['Alta','Média','Baixa'])}
@@ -86,6 +239,8 @@ function LeadsPage({ setRoute, setSubsel }) {
   const [search, setSearch] = React.useState("");
   const [owner, setOwner] = React.useState("Todos");
   const [showLead, setShowLead] = React.useState(false);
+  const [cotacaoPrefill, setCotacaoPrefill] = React.useState(null);
+  const [showCotFromLead, setShowCotFromLead] = React.useState(false);
   const [page, setPage] = React.useState(0);
   const PAGE_SIZE = 15;
 
@@ -235,7 +390,27 @@ function LeadsPage({ setRoute, setSubsel }) {
         </div>
       </div>
 
-      {showLead && <ModalNovoLead onClose={() => setShowLead(false)} onSaved={reloadLeads}/>}
+      {showLead && (
+        <ModalNovoLead
+          onClose={() => setShowLead(false)}
+          onSaved={reloadLeads}
+          onCreateCotacao={(lead) => {
+            setShowLead(false);
+            setCotacaoPrefill(lead);
+            setShowCotFromLead(true);
+          }}
+        />
+      )}
+      {showCotFromLead && (
+        <ModalNovaCotacao
+          onClose={() => { setShowCotFromLead(false); setCotacaoPrefill(null); }}
+          onSaved={() => {
+            reloadLeads();
+            window.toast('Cotação criada! Acesse Comercial → Cotações China.', 'success');
+          }}
+          prefill={cotacaoPrefill}
+        />
+      )}
     </div>
   );
 }
@@ -403,9 +578,16 @@ function SuggestedStep({ icon, label, sub, status }) {
 }
 
 /* ---------- MODAL: Nova Cotação ---------- */
-function ModalNovaCotacao({ onClose, onSaved }) {
+function ModalNovaCotacao({ onClose, onSaved, prefill = null }) {
   const token = React.useMemo(() => Math.random().toString(36).slice(2, 8).toUpperCase(), []);
-  const [f, setF] = React.useState({ building:'', supplier:'', lead:'', items:'1', deadline:'', line:'' });
+  const [f, setF] = React.useState(() => ({
+    building: prefill?.building || '',
+    supplier: '',
+    lead:     prefill?.id || '',
+    items:    String(prefill?.totalEquip || 1),
+    deadline: '',
+    line:     '',
+  }));
   const [saving, setSaving] = React.useState(false);
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
@@ -438,6 +620,16 @@ function ModalNovaCotacao({ onClose, onSaved }) {
         </Button>
       </>}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {prefill && (
+          <div className="alert info" style={{ margin:0 }}>
+            <Icon.flag size={14}/>
+            <div style={{ flex:1, fontSize:12 }}>
+              Pré-preenchido do lead <b>{prefill.id}</b> —{' '}
+              {prefill.equipItens?.map(i => `${i.quantidade}× ${i.tipo}`).join(', ')}
+              {prefill.tipoEquip ? ` · ${prefill.tipoEquip}` : ''}
+            </div>
+          </div>
+        )}
         <div className="stack" style={{ gap:4 }}>
           <label className="up-eyebrow muted">Prédio / Projeto *</label>
           <input className="input" value={f.building} onChange={e => set('building', e.target.value)} placeholder="Ed. Itacolomi, Shopping Vila Olímpia…"/>
