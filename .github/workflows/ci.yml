@@ -1,0 +1,58 @@
+name: CI — VP Gestão
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validar estrutura do projeto
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint (stub)
+        run: npm run lint
+
+      - name: Test (stub)
+        run: npm run test
+
+      - name: Verificar arquivos críticos
+        run: |
+          echo "Verificando arquivos obrigatórios..."
+          test -f index.html       && echo "✅ index.html"       || (echo "❌ index.html ausente"  && exit 1)
+          test -f src/app.jsx      && echo "✅ src/app.jsx"      || (echo "❌ src/app.jsx ausente" && exit 1)
+          test -f src/supabase.js  && echo "✅ src/supabase.js"  || (echo "❌ supabase.js ausente" && exit 1)
+          test -f server.js        && echo "✅ server.js"        || (echo "❌ server.js ausente"   && exit 1)
+          echo "Todos os arquivos críticos presentes."
+
+      - name: Verificar ausência de secrets no código
+        run: |
+          echo "Checando service_role key..."
+          if grep -r "service_role" src/ --include="*.js" --include="*.jsx" -l 2>/dev/null; then
+            echo "❌ ERRO: service_role key encontrada no frontend!"
+            exit 1
+          fi
+          echo "✅ Nenhuma service_role key no frontend."
+
+      - name: Checar referências a 'próxima fase' / 'em breve' no código de ação
+        run: |
+          echo "Checando toasts de 'próxima fase'..."
+          if grep -r "próxima fase\|em breve" src/ --include="*.jsx" -l 2>/dev/null | grep -v shell.jsx; then
+            echo "⚠️  WARN: encontradas referências a funcionalidades não implementadas"
+          else
+            echo "✅ Sem placeholders de 'próxima fase'."
+          fi

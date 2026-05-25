@@ -2,6 +2,34 @@
    app.jsx — Main app: routing, role, tweaks, mount
    ============================================================ */
 
+/* Títulos por rota — atualiza document.title ao navegar */
+const ROUTE_TITLE = {
+  dashboard: "Dashboard",
+  leads: "Pipeline de Leads",
+  "lead-detail": "Detalhe de Lead",
+  cotacoes: "Cotações China",
+  "cotacao-detail": "Detalhe de Cotação",
+  precificacao: "Precificação",
+  propostas: "Propostas Comerciais",
+  "proposta-editor": "Editor de Proposta",
+  engenharia: "Projetos de Engenharia",
+  "ncm-kanban": "Solicitações NCM",
+  "ncm-detail": "Ficha NCM",
+  "ncm-catalogo": "Catálogo de Produtos",
+  juridico: "Contratos & Minutas",
+  instalacao: "Instalação em Campo",
+  importacao: "Importação",
+  "importacao-detail": "Detalhe de Embarque",
+  "importacao-rastreamento": "Rastreamento de Navios",
+  "importacao-email": "Inbox Importação",
+  compras: "Compras Nacional",
+  "compras-email": "Inbox Compras",
+  financeiro: "Gatilhos & Prazo Reverso",
+  comissoes: "Comissões",
+  notificacoes: "Notificações",
+  configuracoes: "Configurações",
+};
+
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "density": "cozy",
   "sidebarCollapsed": false,
@@ -86,18 +114,24 @@ function App() {
     if (t.sidebarCollapsed !== collapsed) setCollapsed(t.sidebarCollapsed);
   }, [t.sidebarCollapsed]);
 
-  // when role changes via dropdown, ensure restricted routes don't show stale
+  // Atualiza document.title ao mudar de rota
   React.useEffect(() => {
-    const restricted = {
-      precificacao: ["financeiro", "admin"],
-      financeiro: ["financeiro", "admin"],
-      comissoes: ["financeiro", "admin"],
-      configuracoes: ["admin"],
-    };
-    if (restricted[route] && !restricted[route].includes(role)) {
+    const label = ROUTE_TITLE[route];
+    document.title = label ? label + " · VP Gestão" : "VP Gestão · VerticalParts";
+  }, [route]);
+
+  // AuthZ — impede acesso a rotas restritas independente de como a navegação ocorreu
+  const RESTRICTED = {
+    precificacao: ["financeiro", "admin"],
+    financeiro: ["financeiro", "admin"],
+    comissoes: ["financeiro", "admin"],
+    configuracoes: ["admin"],
+  };
+  React.useEffect(() => {
+    if (RESTRICTED[route] && !RESTRICTED[route].includes(role)) {
       setRoute("dashboard");
     }
-  }, [role]);
+  }, [role, route]); // react em mudança de role E de rota
 
   const renderPage = () => {
     switch (route) {
