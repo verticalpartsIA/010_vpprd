@@ -58,6 +58,10 @@ function ModalNovoEmbarque({ onClose, onSaved }) {
       status: f.status, containers: parseInt(f.containers) || 1,
       container_type: f.type, position: 0,
       lat: null, lng: null, speed: null, heading: null, channel: null,
+      di_number: null, di_date: null,
+      siscomex_status: f.status === "Entregue" ? "Desembaraçado"
+        : f.status === "Aguardando liberação" ? "Em conferência aduaneira"
+        : "Aguardando chegada do navio",
       milestones: buildMilestones(f.status, f.etd, f.eta), docs: [],
     });
     setSaving(false);
@@ -359,6 +363,25 @@ function ImportacaoDetail({ embarque, setRoute }) {
             <KvBlock label="Nº Invoice" value={e.invoice_number} mono/>
             <KvBlock label="Valor" value={e.invoice_value != null ? (e.invoice_currency === "BRL" ? fmtBRL(e.invoice_value) : fmtUSD(e.invoice_value)) : "—"} mono/>
             <KvBlock label="Moeda" value={e.invoice_currency}/>
+          </Card>
+
+          <Card title="Aduana" sharp>
+            <div className="row sb" style={{ marginBottom: 12 }}>
+              <span className="up-eyebrow muted">Canal de parametrização</span>
+              {e.channel
+                ? <Badge variant={e.channel === "Verde" ? "success" : e.channel === "Amarelo" ? "warning" : "danger"} dot>{e.channel}</Badge>
+                : <span className="muted">—</span>}
+            </div>
+            <KvBlock label="Nº DI / DUIMP" value={e.di_number || "—"} mono/>
+            <KvBlock label="Registro DI" value={fmtDateLong(e.di_date)}/>
+            <KvBlock label="Siscomex" value={e.siscomex_status || "—"}/>
+            {e.channel === "Vermelho" ? (
+              <div className="alert danger" style={{ marginTop: 8 }}><Icon.warning/><div><div className="alert__title">Canal vermelho</div><div className="alert__sub">Conferência documental + inspeção física</div></div></div>
+            ) : e.channel === "Amarelo" ? (
+              <div className="alert warning" style={{ marginTop: 8 }}><Icon.warning/><div><div className="alert__title">Canal amarelo</div><div className="alert__sub">Conferência documental</div></div></div>
+            ) : e.channel === "Verde" ? (
+              <div className="alert success" style={{ marginTop: 8 }}><Icon.check/><div><div className="alert__title">Canal verde</div><div className="alert__sub">Desembaraço automático previsto</div></div></div>
+            ) : null}
           </Card>
 
           <Card title="Datas" sharp>

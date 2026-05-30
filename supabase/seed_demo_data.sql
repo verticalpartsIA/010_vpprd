@@ -32,6 +32,7 @@ UPDATE public.embarques SET
   imo='9839430', supplier='Tianjin Control Systems Co., Ltd.',
   invoice_number='HSL-2026-0418', invoice_value=128400, invoice_currency='USD',
   container_number='MSCU9382821', seal='SH4471092', freight_condition='FCL',
+  di_number=NULL, di_date=NULL, siscomex_status='Aguardando chegada do navio (ETA 02/06)',
   docs = '["BL ✓","Invoice ✓","Packing List ✓","Certificado de Origem ✓","Seguro pendente"]'::jsonb,
   milestones = '[
    {"label":"Produção concluída","date":"2026-04-12","state":"done"},
@@ -51,6 +52,7 @@ UPDATE public.embarques SET
   imo='9784271', supplier='Shanghai Vertical Tech Co., Ltd.',
   invoice_number='SVT-2026-0502', invoice_value=246800, invoice_currency='USD',
   container_number='COSU7741200', seal='CN8820133', freight_condition='FCL',
+  di_number='26/0884213-7', di_date='2026-06-19', siscomex_status='Conferência física — canal vermelho',
   docs = '["BL ✓","Invoice ✓","Packing List ✓","DI registrada"]'::jsonb,
   milestones = '[
    {"label":"Produção concluída","date":"2026-04-28","state":"done"},
@@ -70,6 +72,7 @@ UPDATE public.embarques SET
   imo='9461562', supplier='Hamburg Lift Components GmbH',
   invoice_number='HLC-2026-0429', invoice_value=312500, invoice_currency='USD',
   container_number='HLBU4421098', seal='DE5523088', freight_condition='FCL',
+  di_number=NULL, di_date=NULL, siscomex_status='Aguardando chegada do navio (ETA 05/06)',
   docs = '["BL ✓","Invoice ✓","Packing List ✓","Origem aguardando"]'::jsonb,
   milestones = '[
    {"label":"Produção concluída","date":"2026-04-20","state":"done"},
