@@ -26,6 +26,15 @@ function buildMilestones(status, etd, eta) {
   }));
 }
 
+/* ---------- Sincronização AIS (Edge Function ais-sync) ---------- */
+async function runAisSync() {
+  const { data, error } = await window.__VP_SB.sb.functions.invoke('ais-sync');
+  if (error) { window.toast('Falha na sincronização AIS: ' + (error.message || error), 'error'); return null; }
+  const modo = data && data.mode === 'ais' ? 'AIS' : 'simulação';
+  window.toast(`Posições atualizadas (${(data && data.updated) || 0} navios · modo ${modo}).`, 'success');
+  return data;
+}
+
 /* ---------- MODAL: Novo Embarque ---------- */
 function ModalNovoEmbarque({ onClose, onSaved }) {
   const [f, setF] = React.useState({
@@ -271,7 +280,19 @@ function ImportacaoPage({ setRoute, setSubsel }) {
 
 /* ---------- IMPORTAÇÃO detail ---------- */
 function ImportacaoDetail({ embarque, setRoute }) {
-  if (!embarque) {
+  const [e, setE] = React.useState(embarque);
+  const [syncing, setSyncing] = React.useState(false);
+  React.useEffect(() => { setE(embarque); }, [embarque]);
+
+  const refresh = async () => {
+    setSyncing(true);
+    await runAisSync();
+    const { data } = await window.__VP_SB.sb.from('embarques').select('*').eq('id', embarque.id).single();
+    if (data) setE(data);
+    setSyncing(false);
+  };
+
+  if (!e) {
     return <EmptyStateRedirect
       icon="ship"
       title="Nenhum embarque selecionado"
@@ -279,7 +300,6 @@ function ImportacaoDetail({ embarque, setRoute }) {
       ctaLabel="Ir para Importação"
       onCta={() => setRoute("importacao")}/>;
   }
-  const e = embarque;
   return (
     <div className="page fade-in">
       <div className="row" style={{ marginBottom: 14 }}>
@@ -293,7 +313,7 @@ function ImportacaoDetail({ embarque, setRoute }) {
           <div className="row gap-3" style={{ marginTop: 4 }}>
             <StatusBadge status={e.status}/>
             {e.channel ? <Badge variant={e.channel === "Verde" ? "success" : "warning"} dot>Canal {e.channel}</Badge> : null}
-            <span className="muted small">Última atualização: hoje 09:14 BRT</span>
+            <span className="muted small">{e.last_ais_sync ? `AIS atualizado ${window.__VP_SB.timeAgo(e.last_ais_sync)}` : "AIS: aguardando 1ª sincronização"}</span>
           </div>
         </div>
         <div className="page-head__r">
@@ -321,8 +341,8 @@ function ImportacaoDetail({ embarque, setRoute }) {
             </div>
           </Card>
 
-          <Card title="Posição atual do navio" sub="MarineTraffic API · atualizado há 8 min"
-            action={<Button variant="ghost" size="sm" icon="refresh">Atualizar</Button>}>
+          <Card title="Posição atual do navio" sub={"Sincronização AIS · " + (e.last_ais_sync ? "atualizado " + window.__VP_SB.timeAgo(e.last_ais_sync) : "aguardando 1ª sync")}
+            action={<Button variant="ghost" size="sm" icon="refresh" onClick={refresh} disabled={syncing}>{syncing ? "Atualizando…" : "Atualizar"}</Button>}>
             <div className="map-frame" style={{ height: 360 }}>
               <ShipMap mainShip={e}/>
             </div>
@@ -409,17 +429,22 @@ function ImportacaoRastreamento({ setRoute }) {
   const [embarques, setEmbarques] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [active, setActive] = React.useState(null);
+  const [syncing, setSyncing] = React.useState(false);
 
-  React.useEffect(() => {
-    window.__VP_SB.sb.from('embarques').select('*').order('eta')
+  const load = React.useCallback(() => {
+    return window.__VP_SB.sb.from('embarques').select('*').order('eta')
       .then(({ data }) => { setEmbarques(data || []); setLoading(false); });
   }, []);
+  React.useEffect(() => { load(); }, [load]);
+
+  const onSync = async () => { setSyncing(true); await runAisSync(); await load(); setSyncing(false); };
 
   if (loading) return <div style={{ textAlign:'center', padding:'60px 0', color:'var(--fg3)', fontSize:13 }}>Carregando…</div>;
 
   const ships = embarques.filter(e => e.lat !== null && e.lat !== undefined);
   const activeId = active || (ships[0] && ships[0].id) || null;
   const activeShip = ships.find(s => s.id === activeId);
+  const lastSync = ships.map(s => s.last_ais_sync).filter(Boolean).sort().pop();
 
   return (
     <div className="page fade-in" style={{ paddingBottom: 32 }}>
@@ -430,10 +455,10 @@ function ImportacaoRastreamento({ setRoute }) {
         <div className="page-head__l">
           <div className="page-head__eyebrow"><span className="vp-rule"/>Logística · Rastreamento</div>
           <h1 className="page-head__title">Mapa Marítimo</h1>
-          <p className="page-head__sub">Posição em tempo real dos {ships.length} navio{ships.length !== 1 ? 's' : ''} em trânsito · MarineTraffic API</p>
+          <p className="page-head__sub">Posição dos {ships.length} navio{ships.length !== 1 ? 's' : ''} · sincronização AIS{lastSync ? ` · atualizado ${window.__VP_SB.timeAgo(lastSync)}` : ' · aguardando 1ª sync'}</p>
         </div>
         <div className="page-head__r">
-          <Button variant="outline" icon="refresh">Atualizar</Button>
+          <Button variant="outline" icon="refresh" onClick={onSync} disabled={syncing}>{syncing ? 'Atualizando…' : 'Atualizar'}</Button>
           <Button variant="outline" icon="download">Exportar relatório</Button>
         </div>
       </div>

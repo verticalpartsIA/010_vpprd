@@ -207,5 +207,5 @@
   }
 
   // ---- expor para componentes React ----
-  window.__VP_SB = { sb, loadDashboardData };
+  window.__VP_SB = { sb, loadDashboardData, timeAgo };
 }());

@@ -87,6 +87,11 @@ UPDATE public.embarques SET
   ]'::jsonb
 WHERE id='EMB-003';
 
+-- Baseline AIS: posição/geo inicial + zera última sincronização (Edge Function ais-sync)
+UPDATE public.embarques SET position=0.62, lat=-18.3, lng=-38.2, speed=14.2, heading=180, last_ais_sync=NULL WHERE id='EMB-001';
+UPDATE public.embarques SET position=0.97, lat=-23.00, lng=-44.05, speed=0,   heading=0,   last_ais_sync=NULL WHERE id='EMB-002';
+UPDATE public.embarques SET position=0.45, lat=-22.1, lng=-35.7, speed=16.8, heading=195, last_ais_sync=NULL WHERE id='EMB-003';
+
 -- Usuários: remover entradas fictícias (placeholder e duplicata mal grafada)
 DELETE FROM public.usuarios WHERE email='gelsonsimoes@gmail.com' AND name='Fulano de Tal';
 DELETE FROM public.usuarios WHERE email='ariliene.avila@verticalparts.com.br';
