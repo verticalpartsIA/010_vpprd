@@ -143,6 +143,20 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
+-- Engenharia · Configurador de Equipamentos (escada + esteira)
+-- ============================================================
+INSERT INTO public.equipamentos_spec (id, referencia, tipo, responsavel, status, params, computed, anexos, observacoes) VALUES
+('EQ-000001','Shopping Vila Olímpia — Praça Central','escada_rolante','Eng. Bruno Salles','finalizado',
+ '{"aplicacao":"Comercial (shopping)","ambiente":"Interno","angulo":35,"rise":5700,"stepWidth":1000,"velocidade":0.5,"degrausPatamar":3,"motorizacao":"Modular (SOG)","economia":"Parada automática (sem passageiro)","balaustrada":"Vidro"}'::jsonb,
+ '{"velMax":0.5,"excedeVel":false,"capacidade":9000,"degraus":21,"comprimentoHorizontal":8.14}'::jsonb,
+ '[]'::jsonb,'Acabamento dos degraus em alumínio; corrimão preto. Norma EN 81-20/50.'),
+('EQ-000002','Aeroporto Regional Sul — Conexão Terminal','esteira_rolante','Eng. Marina Costa','rascunho',
+ '{"ambiente":"Interno","inclinacao":0,"comprimento":45000,"palheta":1200,"velocidade":0.65,"tipo":"Palhetas","motorizacao":"Modular (SOG)","economia":"VVVF"}'::jsonb,
+ '{"velMax":0.75,"excedeVel":false,"capacidade":14040,"tempoTravessia":69,"desnivelAprox":0}'::jsonb,
+ '[]'::jsonb,'Travessia longa entre portões; palheta larga p/ bagagem.')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
 -- RESET — limpeza de dados de teste transacionais
 -- (descomente para usar; NÃO apaga colaboradores/usuários reais)
 -- ============================================================

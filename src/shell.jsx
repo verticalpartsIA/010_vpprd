@@ -20,6 +20,7 @@ const NAV_GROUPS = [
   ]},
   { label: "Engenharia", items: [
     { id: "engenharia", label: "Engenharia", icon: "ruler" },
+    { id: "eng-configurador", label: "Configurador", icon: "grid" },
     { id: "ncm-kanban", label: "Solicitações NCM", icon: "package" },
     { id: "ncm-catalogo", label: "Catálogo de Produtos", icon: "fileSearch" },
   ]},
@@ -111,6 +112,7 @@ const BREADCRUMB_MAP = {
   "ncm-kanban":  { module: "Engenharia", page: "Solicitações NCM", icon: "package" },
   "ncm-detail":  { module: "Engenharia", page: "Solicitação NCM — Detalhe", icon: "fileSearch" },
   "ncm-catalogo": { module: "Engenharia", page: "Catálogo de Produtos", icon: "fileSearch" },
+  "eng-configurador": { module: "Engenharia", page: "Configurador de Equipamentos", icon: "grid" },
   importacao:    { module: "Logística", page: "Importação", icon: "ship" },
   compras:       { module: "Logística", page: "Compras Nacional", icon: "truck" },
   instalacao:    { module: "Instalação & Entrega", page: "Instalação", icon: "hardhat" },

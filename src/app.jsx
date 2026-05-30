@@ -16,6 +16,7 @@ const ROUTE_TITLE = {
   "ncm-kanban": "Solicitações NCM",
   "ncm-detail": "Ficha NCM",
   "ncm-catalogo": "Catálogo de Produtos",
+  "eng-configurador": "Configurador de Equipamentos",
   juridico: "Contratos & Minutas",
   instalacao: "Instalação em Campo",
   art: "ART de Instalação",
@@ -150,6 +151,7 @@ function App() {
       case "ncm-kanban": return <NcmKanbanPage setRoute={setRoute} setSubsel={setSubsel}/>;
       case "ncm-detail": return <NcmDetailPage product={subsel?.ncmProduct} setRoute={setRoute}/>;
       case "ncm-catalogo": return <NcmCatalogoPage setRoute={setRoute}/>;
+      case "eng-configurador": return <ConfiguradorPage setRoute={setRoute}/>;
       case "juridico": return <JuridicoPage setRoute={setRoute}/>;
       case "instalacao": return <InstalacaoPage/>;
       case "art": return <ArtPage/>;
@@ -227,6 +229,7 @@ function App() {
               { value: "engenharia", label: "Engenharia + Laudo" },
               { value: "ncm-kanban", label: "📦 Solicitações NCM" },
               { value: "ncm-catalogo", label: "📋 Catálogo de Produtos" },
+              { value: "eng-configurador", label: "🛠 Configurador de Equipamentos" },
               { value: "juridico", label: "Jurídico (✂️ redator)" },
               { value: "instalacao", label: "Instalação + Checklist" },
               { value: "art", label: "ART de Instalação" },
