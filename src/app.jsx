@@ -18,6 +18,9 @@ const ROUTE_TITLE = {
   "ncm-catalogo": "Catálogo de Produtos",
   juridico: "Contratos & Minutas",
   instalacao: "Instalação em Campo",
+  art: "ART de Instalação",
+  cronograma: "Cronograma de Instalação",
+  databook: "Data Book & Termo",
   importacao: "Importação",
   "importacao-detail": "Detalhe de Embarque",
   "importacao-rastreamento": "Rastreamento de Navios",
@@ -149,6 +152,9 @@ function App() {
       case "ncm-catalogo": return <NcmCatalogoPage setRoute={setRoute}/>;
       case "juridico": return <JuridicoPage setRoute={setRoute}/>;
       case "instalacao": return <InstalacaoPage/>;
+      case "art": return <ArtPage/>;
+      case "cronograma": return <CronogramaPage/>;
+      case "databook": return <DataBookPage/>;
       case "importacao": return <ImportacaoPage setRoute={setRoute} setSubsel={setSubsel}/>;
       case "importacao-detail": return <ImportacaoDetail embarque={subsel} setRoute={setRoute}/>;
       case "importacao-rastreamento": return <ImportacaoRastreamento setRoute={setRoute}/>;
@@ -223,6 +229,9 @@ function App() {
               { value: "ncm-catalogo", label: "📋 Catálogo de Produtos" },
               { value: "juridico", label: "Jurídico (✂️ redator)" },
               { value: "instalacao", label: "Instalação + Checklist" },
+              { value: "art", label: "ART de Instalação" },
+              { value: "cronograma", label: "Cronograma de Instalação" },
+              { value: "databook", label: "Data Book & Termo" },
               { value: "importacao", label: "Importação (lista)" },
               { value: "importacao-detail", label: "Detalhe de Embarque" },
               { value: "importacao-rastreamento", label: "🛰️ Mapa de Navios" },

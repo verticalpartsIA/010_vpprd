@@ -2,6 +2,8 @@
    shell.jsx — Sidebar + Header + role switcher
    ============================================================ */
 
+/* Ordem segue o workflow operacional: pré-venda → contrato → engenharia →
+   importação/logística → instalação & entrega. Financeiro é transversal. */
 const NAV_GROUPS = [
   { label: "Geral", items: [
     { id: "dashboard", label: "Dashboard", icon: "home" },
@@ -13,16 +15,23 @@ const NAV_GROUPS = [
     { id: "precificacao", label: "Precificação", icon: "calculator", restrict: ["financeiro", "admin"] },
     { id: "propostas", label: "Propostas", icon: "proposal" },
   ]},
-  { label: "Operações", items: [
+  { label: "Contrato", items: [
+    { id: "juridico", label: "Jurídico", icon: "scale" },
+  ]},
+  { label: "Engenharia", items: [
     { id: "engenharia", label: "Engenharia", icon: "ruler" },
     { id: "ncm-kanban", label: "Solicitações NCM", icon: "package" },
-    { id: "juridico", label: "Jurídico", icon: "scale" },
-    { id: "instalacao", label: "Instalação", icon: "hardhat" },
+    { id: "ncm-catalogo", label: "Catálogo de Produtos", icon: "fileSearch" },
   ]},
   { label: "Logística", items: [
     { id: "importacao", label: "Importação", icon: "ship" },
-    { id: "ncm-catalogo", label: "Catálogo de Produtos", icon: "fileSearch" },
     { id: "compras", label: "Compras Nacional", icon: "truck" },
+  ]},
+  { label: "Instalação & Entrega", items: [
+    { id: "instalacao", label: "Instalação", icon: "hardhat" },
+    { id: "art", label: "ART", icon: "scale" },
+    { id: "cronograma", label: "Cronograma", icon: "clock" },
+    { id: "databook", label: "Data Book & Termo", icon: "fileSearch" },
   ]},
   { label: "Financeiro", items: [
     { id: "financeiro", label: "Gatilhos & Prazo", icon: "dollar", restrict: ["financeiro", "admin"] },
@@ -97,14 +106,17 @@ const BREADCRUMB_MAP = {
   cotacoes:      { module: "Comercial", page: "Cotações China", icon: "globe" },
   precificacao:  { module: "Comercial", page: "Precificação", icon: "calculator" },
   propostas:     { module: "Comercial", page: "Propostas", icon: "proposal" },
-  engenharia:    { module: "Operações", page: "Engenharia", icon: "ruler" },
-  "ncm-kanban":  { module: "Operações", page: "Solicitações NCM", icon: "package" },
-  "ncm-detail":  { module: "Operações", page: "Solicitação NCM — Detalhe", icon: "fileSearch" },
-  juridico:      { module: "Operações", page: "Jurídico", icon: "scale" },
-  instalacao:    { module: "Operações", page: "Instalação", icon: "hardhat" },
+  juridico:      { module: "Contrato", page: "Jurídico", icon: "scale" },
+  engenharia:    { module: "Engenharia", page: "Engenharia", icon: "ruler" },
+  "ncm-kanban":  { module: "Engenharia", page: "Solicitações NCM", icon: "package" },
+  "ncm-detail":  { module: "Engenharia", page: "Solicitação NCM — Detalhe", icon: "fileSearch" },
+  "ncm-catalogo": { module: "Engenharia", page: "Catálogo de Produtos", icon: "fileSearch" },
   importacao:    { module: "Logística", page: "Importação", icon: "ship" },
-  "ncm-catalogo": { module: "Logística", page: "Catálogo de Produtos", icon: "fileSearch" },
   compras:       { module: "Logística", page: "Compras Nacional", icon: "truck" },
+  instalacao:    { module: "Instalação & Entrega", page: "Instalação", icon: "hardhat" },
+  art:           { module: "Instalação & Entrega", page: "ART de Instalação", icon: "scale" },
+  cronograma:    { module: "Instalação & Entrega", page: "Cronograma de Instalação", icon: "clock" },
+  databook:      { module: "Instalação & Entrega", page: "Data Book & Termo", icon: "fileSearch" },
   financeiro:    { module: "Financeiro", page: "Gatilhos & Prazo Reverso", icon: "dollar" },
   comissoes:     { module: "Financeiro", page: "Comissões", icon: "award" },
   configuracoes: { module: "Admin", page: "Configurações", icon: "settings" },

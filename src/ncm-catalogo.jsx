@@ -109,7 +109,7 @@ function NcmCatalogoPage({ setRoute }) {
     <div className="page fade-in">
       <div className="page-head">
         <div className="page-head__l">
-          <div className="page-head__eyebrow"><span className="vp-rule"/>Logística · Catálogo de Produtos</div>
+          <div className="page-head__eyebrow"><span className="vp-rule"/>Engenharia · Catálogo de Produtos</div>
           <h1 className="page-head__title">Catálogo de Produtos</h1>
           <p className="page-head__sub">Produtos cadastrados no Catálogo da Receita Federal (Siscomex/Duimp). Necessário para emissão de Duimp.</p>
         </div>

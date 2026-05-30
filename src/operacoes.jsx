@@ -168,7 +168,7 @@ function EngenhariaPage({ setRoute }) {
     <div className="page fade-in">
       <div className="page-head">
         <div className="page-head__l">
-          <div className="page-head__eyebrow"><span className="vp-rule"/>Operações · Engenharia</div>
+          <div className="page-head__eyebrow"><span className="vp-rule"/>Engenharia · Projetos</div>
           <h1 className="page-head__title">Projetos de Engenharia</h1>
           <p className="page-head__sub">Visita técnica, levantamento, BOM, laudo final. Gatilha aprovação para Importação.</p>
         </div>
@@ -280,7 +280,7 @@ function JuridicoPage({ setRoute }) {
     <div className="page fade-in">
       <div className="page-head">
         <div className="page-head__l">
-          <div className="page-head__eyebrow"><span className="vp-rule"/>Operações · Jurídico</div>
+          <div className="page-head__eyebrow"><span className="vp-rule"/>Contrato · Jurídico</div>
           <h1 className="page-head__title">Contratos & Minutas</h1>
           <p className="page-head__sub">Geração de minuta, redação automática de páginas confidenciais, envio para assinatura digital.</p>
         </div>
@@ -848,7 +848,7 @@ function InstalacaoPage() {
     <div className="page fade-in">
       <div className="page-head">
         <div className="page-head__l">
-          <div className="page-head__eyebrow"><span className="vp-rule"/>Operações · Instalação</div>
+          <div className="page-head__eyebrow"><span className="vp-rule"/>Instalação & Entrega · Instalação</div>
           <h1 className="page-head__title">Instalação em Campo</h1>
           <p className="page-head__sub">Equipes ativas, checklist de obra, laudo final e termo de aceite</p>
         </div>
