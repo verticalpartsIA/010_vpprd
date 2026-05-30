@@ -35,6 +35,53 @@ async function runAisSync() {
   return data;
 }
 
+/* ---------- Documentos do embarque (checklist persistente) ---------- */
+// Aceita tanto o formato antigo (strings "BL ✓") quanto o novo ({nome, pronto}).
+function normDocs(docs) {
+  return (docs || []).map(d =>
+    typeof d === "string"
+      ? { nome: d.replace(/\s*✓\s*$/, "").trim() || d, pronto: d.includes("✓") }
+      : { nome: d.nome, pronto: !!d.pronto });
+}
+
+function DocsCard({ docs, onChange }) {
+  const [novo, setNovo] = React.useState("");
+  const list = normDocs(docs);
+  const prontos = list.filter(d => d.pronto).length;
+
+  const toggle = (i) => onChange(list.map((d, idx) => idx === i ? { ...d, pronto: !d.pronto } : d));
+  const remove = (i) => onChange(list.filter((_, idx) => idx !== i));
+  const add = () => { const n = novo.trim(); if (!n) return; onChange([...list, { nome: n, pronto: false }]); setNovo(""); };
+
+  return (
+    <Card title="Documentos" sub={`${prontos}/${list.length} prontos`}>
+      <div className="grid-3" style={{ gap: 10 }}>
+        {list.map((d, i) => (
+          <div key={i} onClick={() => toggle(i)} title="Clique para alternar pronto/pendente"
+            style={{ padding: 12, background: d.pronto ? "var(--vp-success-tint)" : "var(--vp-gray-50)", border: "1px solid " + (d.pronto ? "var(--vp-success)" : "var(--border)"), display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+            <Icon.fileText size={18} color={d.pronto ? "var(--vp-success)" : "var(--fg3)"}/>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 500 }}>{d.nome}</div>
+              <div className="up-eyebrow" style={{ fontSize: 9, color: d.pronto ? "var(--vp-success-ink)" : "var(--fg3)" }}>{d.pronto ? "✓ pronto" : "pendente"}</div>
+            </div>
+            <button title="Remover" onClick={(ev) => { ev.stopPropagation(); remove(i); }}
+              style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--fg3)", padding: 2, lineHeight: 1 }}>
+              <Icon.x size={12}/>
+            </button>
+          </div>
+        ))}
+        {list.length === 0 ? <div className="muted small" style={{ gridColumn: "1/-1" }}>Nenhum documento. Adicione abaixo.</div> : null}
+      </div>
+      <div className="row gap-2" style={{ marginTop: 12 }}>
+        <input className="input" value={novo} onChange={(e) => setNovo(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") add(); }}
+          placeholder="Novo documento (ex.: Certificado de Origem)" style={{ flex: 1 }}/>
+        <Button variant="outline" size="sm" icon="plus" onClick={add}>Adicionar</Button>
+      </div>
+    </Card>
+  );
+}
+
 /* ---------- MODAL: Novo Embarque ---------- */
 function ModalNovoEmbarque({ onClose, onSaved }) {
   const [f, setF] = React.useState({
@@ -292,6 +339,12 @@ function ImportacaoDetail({ embarque, setRoute }) {
     setSyncing(false);
   };
 
+  const onDocsChange = async (newDocs) => {
+    setE(prev => ({ ...prev, docs: newDocs }));
+    const { error } = await window.__VP_SB.sb.from('embarques').update({ docs: newDocs }).eq('id', embarque.id);
+    if (error) window.toast('Erro ao salvar documentos: ' + error.message, 'error');
+  };
+
   if (!e) {
     return <EmptyStateRedirect
       icon="ship"
@@ -354,16 +407,7 @@ function ImportacaoDetail({ embarque, setRoute }) {
             </div>
           </Card>
 
-          <Card title="Documentos" sub={(e.docs || []).length + " arquivos"} action={<Button variant="outline" size="sm" icon="upload">Adicionar</Button>}>
-            <div className="grid-3" style={{ gap: 10 }}>
-              {(e.docs || []).map((d, i) => (
-                <div key={i} style={{ padding: 12, background: "var(--vp-gray-50)", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                  <Icon.fileText size={18} color={d.includes("✓") ? "var(--vp-success)" : "var(--fg3)"}/>
-                  <div style={{ fontSize: 12, fontWeight: 500 }}>{d}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <DocsCard docs={e.docs} onChange={onDocsChange}/>
         </div>
 
         <div className="stack">

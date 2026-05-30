@@ -33,7 +33,7 @@ UPDATE public.embarques SET
   invoice_number='HSL-2026-0418', invoice_value=128400, invoice_currency='USD',
   container_number='MSCU9382821', seal='SH4471092', freight_condition='FCL',
   di_number=NULL, di_date=NULL, siscomex_status='Aguardando chegada do navio (ETA 02/06)',
-  docs = '["BL ✓","Invoice ✓","Packing List ✓","Certificado de Origem ✓","Seguro pendente"]'::jsonb,
+  docs = '[{"nome":"BL","pronto":true},{"nome":"Invoice","pronto":true},{"nome":"Packing List","pronto":true},{"nome":"Certificado de Origem","pronto":true},{"nome":"Seguro","pronto":false}]'::jsonb,
   milestones = '[
    {"label":"Produção concluída","date":"2026-04-12","state":"done"},
    {"label":"Embarcado (gate-in / load)","date":"2026-04-18","state":"done"},
@@ -53,7 +53,7 @@ UPDATE public.embarques SET
   invoice_number='SVT-2026-0502', invoice_value=246800, invoice_currency='USD',
   container_number='COSU7741200', seal='CN8820133', freight_condition='FCL',
   di_number='26/0884213-7', di_date='2026-06-19', siscomex_status='Conferência física — canal vermelho',
-  docs = '["BL ✓","Invoice ✓","Packing List ✓","DI registrada"]'::jsonb,
+  docs = '[{"nome":"BL","pronto":true},{"nome":"Invoice","pronto":true},{"nome":"Packing List","pronto":true},{"nome":"DI","pronto":true}]'::jsonb,
   milestones = '[
    {"label":"Produção concluída","date":"2026-04-28","state":"done"},
    {"label":"Embarcado (gate-in / load)","date":"2026-05-03","state":"done"},
@@ -73,7 +73,7 @@ UPDATE public.embarques SET
   invoice_number='HLC-2026-0429', invoice_value=312500, invoice_currency='USD',
   container_number='HLBU4421098', seal='DE5523088', freight_condition='FCL',
   di_number=NULL, di_date=NULL, siscomex_status='Aguardando chegada do navio (ETA 05/06)',
-  docs = '["BL ✓","Invoice ✓","Packing List ✓","Origem aguardando"]'::jsonb,
+  docs = '[{"nome":"BL","pronto":true},{"nome":"Invoice","pronto":true},{"nome":"Packing List","pronto":true},{"nome":"Certificado de Origem","pronto":false}]'::jsonb,
   milestones = '[
    {"label":"Produção concluída","date":"2026-04-20","state":"done"},
    {"label":"Embarcado (gate-in / load)","date":"2026-04-26","state":"done"},
