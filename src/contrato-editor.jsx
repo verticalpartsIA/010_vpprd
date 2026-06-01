@@ -67,7 +67,7 @@ function makeDefaultDados(contrato) {
 
 /* ---------- Seções de navegação ---------- */
 const SECOES_CLIENTE = [
-  { id: 'dados',     title: 'Dados do Contrato',       icon: 'file',      group: 'IDENTIFICAÇÃO' },
+  { id: 'dados',     title: 'Dados do Contrato',       icon: 'fileText',  group: 'IDENTIFICAÇÃO' },
   { id: 'comprador', title: 'Comprador',                icon: 'user',      group: 'IDENTIFICAÇÃO' },
   { id: 'objeto',    title: 'Objeto do Contrato',       icon: 'package',   group: 'ESCOPO' },
   { id: 'preco',     title: 'Preço e Pagamento',        icon: 'dollar',    group: 'COMERCIAL' },
@@ -204,10 +204,10 @@ function ContratoEditorPage({ contrato, setRoute, onSaved }) {
             </h1>
           </div>
           <div className="row gap-2">
-            <Button variant="ghost" size="sm" icon="save" onClick={() => save()} disabled={saving}>
+            <Button variant="ghost" size="sm" icon="copy" onClick={() => save()} disabled={saving}>
               {saving ? 'Salvando…' : 'Salvar'}
             </Button>
-            <Button variant="outline" size="sm" icon="download" onClick={() => { window.toast('Abrindo impressão — salve como PDF.','info'); setTimeout(() => window.print(), 200); }}>Gerar PDF</Button>
+            <Button variant="outline" size="sm" icon="download" onClick={() => gerarContratoPDF(dados)}>Gerar PDF</Button>
             <Button variant={preenchido ? 'primary' : 'outline'} size="sm" icon="signature"
               onClick={() => preenchido ? save('Em assinatura digital') : window.toast('Preencha Comprador, Objeto e Preço primeiro.','warning')}>
               Enviar p/ assinatura
@@ -250,7 +250,7 @@ function ContratoEditorPage({ contrato, setRoute, onSaved }) {
                 <div className="pe__sidenav-group">{g}</div>
                 {items.map(s => {
                   const fill = sectionFill(s.id, dados);
-                  const I = Icon[s.icon] || Icon.file;
+                  const I = Icon[s.icon] || Icon.bolt;
                   const isActive = activeSection === s.id;
                   const isDone   = fill === 'full';
                   return (
@@ -314,11 +314,10 @@ function ContratoEditorPage({ contrato, setRoute, onSaved }) {
               </span>
               <div className="spacer" style={{ flex: 1 }}/>
               <Button variant="ghost" size="sm" icon="chevLeft" onClick={() => setRoute('juridico')}>Voltar</Button>
-              <Button variant="outline" size="sm" icon="download"
-                onClick={() => { window.toast('Abrindo diálogo de impressão…','info'); setTimeout(() => window.print(), 200); }}>
+              <Button variant="outline" size="sm" icon="download" onClick={() => gerarContratoPDF(dados)}>
                 Gerar PDF
               </Button>
-              <Button variant="secondary" size="sm" icon="save" onClick={() => save()} disabled={saving}>
+              <Button variant="secondary" size="sm" icon="copy" onClick={() => save()} disabled={saving}>
                 {saving ? 'Salvando…' : 'Salvar rascunho'}
               </Button>
               <Button variant="primary" size="sm" icon="signature"
@@ -573,4 +572,246 @@ function FieldSel({ label, value, options, onChange }) {
   );
 }
 
-Object.assign(window, { ContratoEditorPage });
+/* ============================================================
+   GERAÇÃO DE PDF FIEL À MINUTA CONTRATUAL_VERTICALPARTS.pdf
+   Cabeçalho (bloco cinza + faixa creme #FCD89C + logo cinza),
+   rodapé (contatos + bloco #343434 + faixa laranja #FBB039),
+   destaques amarelos #FFFF00 nos campos preenchidos.
+   ============================================================ */
+function gerarContratoPDF(dados) {
+  const html = buildContratoHTML(dados);
+  const w = window.open('', '_blank', 'width=900,height=1100');
+  if (!w) { window.toast('Permita pop-ups para gerar o PDF.', 'warning'); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  // aguarda render + imagem do logo, então abre o diálogo de impressão
+  w.onload = () => { setTimeout(() => { w.focus(); w.print(); }, 350); };
+  window.toast('Documento gerado — escolha "Salvar como PDF" na impressão.', 'success');
+}
+
+function buildContratoHTML(dados) {
+  const origin = window.location.origin;
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // V = campo preenchido (amarelo) | placeholder (amarelo, itálico cinza)
+  const V  = (val, ph) => val ? `<span class="fill">${esc(val)}</span>` : `<span class="ph">${esc(ph)}</span>`;
+  const T  = (val, def) => esc(val || def);
+
+  const endEmpresa = [dados.logradouro && `${dados.logradouro}${dados.numero_end ? ', nº '+dados.numero_end : ''}`,
+                      dados.bairro, dados.cidade && `${dados.cidade}/${dados.estado}`, dados.cep && `CEP ${dados.cep}`]
+                     .filter(Boolean).join(', ');
+  const endResp = [dados.endRespRua && `${dados.endRespRua}${dados.endRespNumero ? ', nº '+dados.endRespNumero : ''}`,
+                   dados.endRespBairro, dados.endRespCidade && `${dados.endRespCidade}/${dados.endRespEstado}`]
+                  .filter(Boolean).join(', ');
+  const localEntrega = [dados.entregaRua && `${dados.entregaRua}${dados.entregaNum ? ', nº '+dados.entregaNum : ''}`,
+                        dados.entregaBairro, dados.entregaCidade && `${dados.entregaCidade}/${dados.entregaEstado}`,
+                        dados.entregaCep && `CEP ${dados.entregaCep}`].filter(Boolean).join(', ');
+
+  const parcelasRows = (dados.parcelas || []).map(p => `
+    <tr>
+      <td>${esc(p.desc || '—')}</td>
+      <td style="text-align:center">${p.pct ? esc(p.pct)+'%' : '—'}</td>
+      <td style="text-align:right">${p.valor ? '<span class="fill">R$ '+esc(p.valor)+'</span>' : '—'}</td>
+    </tr>`).join('');
+
+  return `<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
+<title>Contrato ${esc(dados.numero || '')} — VerticalParts</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Mulish','Segoe UI',Arial,sans-serif;
+    font-size: 10.5px; line-height: 1.55; color: #1a1a1a;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* ---- repeating header/footer via fixed + thead/tfoot spacer ---- */
+  .pg-header { position: fixed; top: 0; left: 0; right: 0; height: 92px; background: #fff; z-index: 10; }
+  .pg-footer { position: fixed; bottom: 0; left: 0; right: 0; height: 88px; background: #fff; z-index: 10; }
+
+  .hd-strip { display: flex; height: 16px; }
+  .hd-strip .blk { width: 64px; background: #999999; }
+  .hd-strip .band { flex: 1; background: #FCD89C; }
+  .hd-logo { background: #F3F3F3; padding: 12px 40px; }
+  .hd-logo img { height: 34px; filter: grayscale(1); display: block; }
+
+  .ft-contact { display: flex; gap: 28px; padding: 8px 40px 10px; }
+  .ft-col { display: flex; gap: 8px; align-items: flex-start; }
+  .ft-ico { width: 20px; height: 20px; border-radius: 4px; background: #2b2b2b; color: #fff;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .ft-ico svg { width: 11px; height: 11px; fill: #fff; }
+  .ft-txt { font-size: 8px; line-height: 1.45; color: #555; font-family: 'Mulish',Arial,sans-serif; }
+  .ft-strip { display: flex; height: 14px; position: absolute; bottom: 0; left: 0; right: 0; }
+  .ft-strip .blk { width: 64px; background: #343434; }
+  .ft-strip .band { flex: 1; background: #FBB039; }
+
+  table.report { width: 100%; border-collapse: collapse; }
+  table.report > thead > tr > td { height: 92px; }   /* reserva espaço do header */
+  table.report > tfoot > tr > td { height: 88px; }    /* reserva espaço do footer */
+  .body-cell { padding: 0 40px; }
+
+  h1.doc-title { font-size: 12.5px; font-weight: 800; text-align: center; text-transform: uppercase;
+                 text-decoration: underline; margin: 6px 0 14px; line-height: 1.4; }
+  .doc-num { text-align: right; font-size: 10px; font-weight: 700; margin: 0 0 14px; }
+  h2.cl { font-size: 11px; font-weight: 800; margin: 16px 0 8px; }
+  p { margin: 0 0 7px; text-align: justify; }
+  .ind { padding-left: 22px; }
+  ul.anx { list-style: none; padding: 0; margin: 4px 0; }
+  ul.anx li { padding: 2px 0; }
+  .bullet { padding-left: 14px; position: relative; margin: 0 0 5px; }
+  .bullet::before { content: "›"; position: absolute; left: 0; font-weight: 800; }
+  .fill { background: #FFFF00; padding: 0 2px; font-weight: 600; }
+  .ph   { background: #FFFF00; padding: 0 2px; color: #777; font-style: italic; }
+
+  table.pgmt { width: 100%; border-collapse: collapse; margin: 6px 0 8px; font-size: 10px; }
+  table.pgmt th { background: #2b2b2b; color: #fff; font-size: 8.5px; text-transform: uppercase;
+                  letter-spacing: .06em; padding: 5px 10px; text-align: left; }
+  table.pgmt td { border: 1px solid #ddd; padding: 5px 10px; }
+
+  .anx-tbl { width: 60%; border-collapse: collapse; margin: 8px 0; font-size: 9.5px; }
+  .anx-tbl td { border: 1px solid #ccc; padding: 4px 8px; }
+
+  .sign-wrap { margin-top: 18px; }
+  .sign-row { display: flex; justify-content: space-between; gap: 40px; margin-top: 40px; }
+  .sign-box { flex: 1; text-align: center; }
+  .sign-box .ln { border-top: 1px solid #000; margin-bottom: 4px; }
+  .sign-box .nm { font-weight: 700; font-size: 10px; }
+  .sign-box .sub { font-size: 9px; color: #444; }
+  .keep { page-break-inside: avoid; }
+</style></head>
+<body>
+
+<!-- HEADER (repete em todas as páginas) -->
+<div class="pg-header">
+  <div class="hd-strip"><div class="blk"></div><div class="band"></div></div>
+  <div class="hd-logo"><img src="${origin}/assets/logo-verticalparts-color.png" alt="VerticalParts"/></div>
+</div>
+
+<!-- FOOTER (repete em todas as páginas) -->
+<div class="pg-footer">
+  <div class="ft-contact">
+    <div class="ft-col">
+      <span class="ft-ico"><svg viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg></span>
+      <span class="ft-txt">Rua Armandina Braga de Almeida, 383<br>Jardim Santa Emilia<br>Guarulhos - SP<br>CEP: 07141-003</span>
+    </div>
+    <div class="ft-col">
+      <span class="ft-ico"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .7-.2 1l-2.3 2.2z"/></svg></span>
+      <span class="ft-txt">+55 11 2528-6473<br>+55 11 2528-6479<br>+55 11 94460-6396</span>
+    </div>
+    <div class="ft-col">
+      <span class="ft-ico"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></span>
+      <span class="ft-txt">contato@verticalparts.com.br<br>comercial@verticalparts.com.br</span>
+    </div>
+  </div>
+  <div class="ft-strip"><div class="blk"></div><div class="band"></div></div>
+</div>
+
+<!-- CORPO -->
+<table class="report">
+  <thead><tr><td></td></tr></thead>
+  <tbody><tr><td class="body-cell">
+
+    <h1 class="doc-title">CONTRATO DE COMPRA E VENDA DE EQUIPAMENTOS E PRESTAÇÃO DE SERVIÇOS DE INSTALAÇÃO</h1>
+    <p class="doc-num">Nº do Contrato: ${V(dados.numero, 'XXXX/2026')}</p>
+
+    <p>Pelo presente instrumento particular e na melhor forma de direito, as partes a seguir nomeadas:</p>
+    <p><b>VENDEDORA:</b> VERTICAL PARTS – INDUSTRIA E COMERCIO DE PEÇAS PARA ESCADAS, ESTEIRAS ROLANTES E ELEVADORES LTDA-ME, inscrita no CNPJ sob o nº 15.822.325/0001-27, com sede à Rua Armandina Braga de Almeida, nº 383, Jd. Santa Emilia, Guarulhos/SP, CEP 07.141-003, neste ato representada nos termos de seu Contrato social por DIEGO YUTAKA MAENO, brasileiro, casado, empresário, portador do RG 23.401.535-4, SSP/SP, inscrito no CPF nº 249.432.208-19, com escritório no endereço acima mencionado e;</p>
+    <p><b>COMPRADOR:</b> ${V(dados.razaoSocial,'RAZÃO SOCIAL')}, inscrito no CNPJ sob o nº ${V(dados.cnpj,'XX.XXX.XXX/XXXX-XX')}, com sede à ${V(endEmpresa, 'Rua XXX, nº XXX, bairro, cidade/estado, CEP XX.XXX-XX')}, neste ato representada nos termos de seu ato constitutivo por ${V(dados.responsavel,'NOME DO RESPONSÁVEL')}, ${V(dados.nacionalidade,'nacionalidade')}, ${V(dados.estadoCivil,'estado civil')}, ${V(dados.profissao,'profissão')}, portador da cédula de identidade RG de nº ${V(dados.rg,'XXX')}, inscrito no CPF nº ${V(dados.cpf,'XXX')}, residente e domiciliado em ${V(endResp,'Rua XXX, nº XXX, bairro, cidade/estado')}.</p>
+    <p>Têm, entre si, certo e ajustado o presente Contrato de compra e venda de equipamento, o qual se regerá pelas disposições do Código Civil e demais condições abaixo, às quais as partes mutuamente se obrigam.</p>
+
+    <h2 class="cl">1 – OBJETO DO CONTRATO</h2>
+    <p><b>1.1 Objeto.</b> O objeto deste Contrato consiste no descrito a seguir, observados e respeitados os termos e as condições estabelecidos neste instrumento contratual:</p>
+    <p class="bullet">Compra e venda de ${V(dados.qtdEquip,'0X')} (qtd.) equipamento, modelo ${V(dados.modeloEquip,'DESCREVER CONFORME PROPOSTA COMERCIAL')}, denominado equipamentos, conforme especificações dos Anexos I e II.</p>
+    <p class="bullet">Modalidade: "CIF" ("Cost, Insurance and Freight").</p>
+    <p class="bullet">Instalação dos equipamentos mencionados acima de forma a entregá-los ao COMPRADOR em condições de uso imediato ("turn key"). A instalação compreende: frete (transporte e desembarque); entrega, instalação e montagem no endereço abaixo, sendo que qualquer alteração no CEP do local poderá sofrer reajuste de preço.</p>
+    <p class="ind"><b>LOCAL DE ENTREGA:</b> ${V(localEntrega,'ENDEREÇO COMPLETO DO LOCAL DE ENTREGA')}</p>
+    <p><b>1.1.1</b> Os seguintes anexos a este Contrato constituem parte indissociável e complementam os termos firmados neste instrumento:</p>
+    <table class="anx-tbl">
+      <tr><td><b>Anexo I</b></td><td>Proposta Comercial nº ${V(dados.propostaRef,'XXXX/2026')}</td></tr>
+      <tr><td><b>Anexo II</b></td><td>Desenho(s) Técnico(s)</td></tr>
+    </table>
+
+    <h2 class="cl">2 – INFORMAÇÕES SOBRE A ENTREGA E A INSTALAÇÃO DOS EQUIPAMENTOS</h2>
+    <p><b>2.1 Instalação e funcionamento.</b> A instalação dos equipamentos observará as normas técnicas pertinentes à natureza do trabalho. O COMPRADOR declara ciência de que o funcionamento definitivo dependerá das boas condições do local de montagem e das instalações elétricas adequadas e permanentes que os alimentarão.</p>
+    <p><b>2.1.1</b> As instalações elétricas deverão ser providenciadas, antecipada e exclusivamente, pelo COMPRADOR, seguindo as especificações técnicas dos Anexos I e II, para que após aprovação seja iniciada a produção dos equipamentos.</p>
+    <p><b>2.2 Guarda e manutenção.</b> O COMPRADOR se obriga a receber os equipamentos no prazo acordado e a mantê-los protegidos contra qualquer avaria, dano e/ou deterioração, incluindo detritos de obras civis (cimento, gesso, massa corrida, poeira, tinta, umidade, chuva, entre outros).</p>
+    <p><b>2.4 Frete.</b> A VENDEDORA garante o frete rodoviário e marítimo sem custo para o COMPRADOR desde que a obra esteja pronta na data de entrega. Em caso de descumprimento, será de responsabilidade do COMPRADOR os custos de frete, descarga e armazenamento.</p>
+    <p><b>2.5 Prazo de entrega na obra.</b> A VENDEDORA se compromete a entregar os equipamentos no prazo de 120 (cento e vinte) a 150 (cento e cinquenta) dias, a contar da data em que o último requisito for preenchido: assinatura do Contrato, pagamento do sinal e aprovação do projeto.</p>
+    <p><b>2.5.1</b> Caso a VENDEDORA não realize a entrega no prazo, ficará sujeita a multa moratória diária de 0,05% limitada a 2% sobre o valor do(s) equipamento(s) em atraso.</p>
+    <p><b>2.6.2</b> A VENDEDORA realizará a instalação e montagem de cada equipamento em até 30 (trinta) dias após sua entrega, desde que a obra esteja concluída — no caso de escadas/esteiras, quando os "berços" inferior e superior estiverem finalizados; no caso de elevadores, quando o(s) poço(s) estiver(em) liberado(s).</p>
+
+    <h2 class="cl">3 – PREÇO E CONDIÇÕES DE PAGAMENTO</h2>
+    <p><b>3.1 Preço.</b> Pela compra dos equipamentos e prestação dos serviços de instalação e montagem, o COMPRADOR pagará à VENDEDORA o valor total de ${dados.valorTotal ? '<span class="fill">R$ '+esc(dados.valorTotal)+'</span>' : V(null,'R$ XXX.XXX,XX')} (${V(dados.valorExtenso,'valor por extenso')}). O pagamento será efetuado conforme cronograma abaixo:</p>
+    <table class="pgmt">
+      <thead><tr><th>Parcela</th><th style="text-align:center">%</th><th style="text-align:right">Valor</th></tr></thead>
+      <tbody>${parcelasRows || '<tr><td colspan="3" style="text-align:center;color:#999">—</td></tr>'}</tbody>
+    </table>
+    <p><b>3.3 Formas de pagamento.</b> Os valores poderão ser pagos por boleto, depósito bancário ou transferência eletrônica diretamente na conta corrente da VENDEDORA ou de outra forma combinada entre as partes.</p>
+    <p><b>3.4 Penalidades por atraso.</b> Caso o COMPRADOR não realize qualquer pagamento na data prevista, incidirá multa de 2%, juros moratórios de 1% ao mês (pro rata die) e correção monetária pelo IGPM ou índice que o substitua.</p>
+    <p><b>3.5.1</b> Estão inclusos no preço todos os impostos decorrentes de emissão de Notas Fiscais de venda/serviços, montagem, instalação e ART's. Não estão inclusos taxas de alvará, DIFAL de ICMS, tributos de importação (II, IPI, PIS/COFINS, ICMS-importação, AFRMM, SISCOMEX) havidos após a emissão.</p>
+
+    <h2 class="cl">4 – OBRIGAÇÕES DA VENDEDORA</h2>
+    <p><b>4.1</b> A VENDEDORA adotará todas as Normas Regulamentadoras de Segurança e Saúde no Trabalho, fornecendo EPIs e EPCs à sua equipe.</p>
+    <p><b>4.3</b> A VENDEDORA é a única responsável por seus funcionários e prepostos, arcando com todas as responsabilidades trabalhistas, previdenciárias e sociais, isentando o COMPRADOR.</p>
+    <p><b>4.4</b> Danos materiais/morais por dolo ou culpa grave dos profissionais da VENDEDORA serão indenizados, limitados ao valor total do Contrato, mediante nexo causal apurado em juízo — reciprocamente aplicável ao COMPRADOR.</p>
+
+    <h2 class="cl">5 – OBRIGAÇÕES DO COMPRADOR</h2>
+    <p><b>5.1</b> O COMPRADOR se obriga a cumprir suas obrigações contratuais, em especial o pagamento em dia e os prazos das obras civis e elétricas de sua responsabilidade.</p>
+    <p><b>5.3</b> O COMPRADOR oferecerá local fechado adequado para armazenamento de peças e ferramentas, responsabilizando-se por sua guarda.</p>
+    <p><b>5.4</b> O COMPRADOR custeará qualquer obra, projeto civil ou reforma necessários à instalação, conforme projeto executivo entregue pela VENDEDORA.</p>
+
+    <h2 class="cl">6 – GARANTIAS</h2>
+    <p><b>6.1 Prazo de garantia.</b> Os equipamentos terão garantia das peças de 90 (noventa) dias a contar da assinatura do Termo de Conclusão da Instalação, podendo ser estendido por mais 9 (nove) meses desde que sob assistência técnica da VENDEDORA ou empresa homologada.</p>
+    <p><b>6.2.1</b> A garantia não cobre: desgaste normal; mau uso/vandalismo; infiltração; sobrecarga elétrica; falta de energia; uso de líquidos; casos fortuitos; deficiências de construção civil; ausência de manutenção. Materiais frágeis (lâmpadas, fusíveis, sensores) também não são cobertos.</p>
+
+    <h2 class="cl">7 – PENALIDADES POR DESCUMPRIMENTO</h2>
+    <p><b>7.1</b> No caso de descumprimento de qualquer cláusula sem multa específica, a parte infratora arcará com multa de 2% sobre o valor do Contrato, paga à vista em até 10 (dez) dias, acrescida de honorários advocatícios de 20% se necessária medida judicial.</p>
+
+    <h2 class="cl">8 – CONDIÇÕES DE ENCERRAMENTO DO CONTRATO</h2>
+    <p><b>8.1</b> Decorridos 30 (trinta) dias de atraso no pagamento, a VENDEDORA notificará por escrito concedendo 5 (cinco) dias úteis; não regularizado, o Contrato estará rescindido de pleno direito.</p>
+    <p><b>8.2.2</b> Desistência após a ordem de fabricação: permanecem devidos 70% do valor total (fabricação dos equipamentos sob medida) e indenização de 50% sobre o valor dos serviços de instalação e montagem.</p>
+
+    <h2 class="cl">9 – CASO FORTUITO E FORÇA MAIOR</h2>
+    <p><b>9.1</b> As partes não respondem por descumprimento decorrente de caso fortuito ou força maior (art. 393 do Código Civil). Não se consideram caso fortuito: dificuldades econômico-financeiras, perda de mercado, greves previsíveis e condições climáticas previsíveis.</p>
+
+    <h2 class="cl">10 – DISPOSIÇÕES FINAIS</h2>
+    <p><b>10.1 Dados para comunicação.</b> O relacionamento entre as partes será pela forma escrita (inclusive e-mail). Dados do COMPRADOR: ${V(dados.responsavel,'nome completo')} — ${V(dados.razaoSocial,'empresa')}. Dados da VENDEDORA: Diego Yutaka Maeno (CEO) — diego@verticalparts.com.br.</p>
+    <p><b>10.8</b> O COMPRADOR declara que seu representante legal possui poderes regulares de representação na data de assinatura, sob pena do art. 299 do Decreto-Lei 2.848/40.</p>
+    <p><b>10.9</b> As partes reconhecem o presente contrato como título executivo extrajudicial (art. 784, III, CPC).</p>
+    <p><b>10.10</b> As partes declaram que leram e entenderam o conteúdo do presente contrato.</p>
+    <p><b>10.13 Assinatura digital.</b> As partes estabelecem que este contrato poderá ser firmado por meios eletrônicos com assinatura eletrônica, nos termos do art. 10 da MP 2.200/2011.</p>
+
+    <div class="sign-wrap keep">
+      <p style="margin-top:20px">${V(dados.cidadeAss,'Guarulhos')}, ${dataBR(dados.dataAss)}.</p>
+      <div class="sign-row">
+        <div class="sign-box">
+          <div class="ln"></div>
+          <div class="nm">VENDEDORA — VERTICAL PARTS</div>
+          <div class="sub">Diego Yutaka Maeno · CPF: 249.432.208-19</div>
+        </div>
+        <div class="sign-box">
+          <div class="ln"></div>
+          <div class="nm">COMPRADOR — ${T(dados.razaoSocial,'(RAZÃO SOCIAL) LTDA.')}</div>
+          <div class="sub">${T(dados.responsavel,'NOME')} · CPF: ${T(dados.cpf,'________')}</div>
+        </div>
+      </div>
+      <p style="margin-top:34px"><b>TESTEMUNHAS:</b></p>
+      <div class="sign-row" style="margin-top:24px">
+        <div class="sign-box">
+          <div class="ln"></div>
+          <div class="sub" style="text-align:left">1. Nome: ${T(dados.test1Nome,'____________________')}<br>&nbsp;&nbsp;&nbsp;CPF: ${T(dados.test1Cpf,'____________')}</div>
+        </div>
+        <div class="sign-box">
+          <div class="ln"></div>
+          <div class="sub" style="text-align:left">2. Nome: ${T(dados.test2Nome,'____________________')}<br>&nbsp;&nbsp;&nbsp;CPF: ${T(dados.test2Cpf,'____________')}</div>
+        </div>
+      </div>
+    </div>
+
+  </td></tr></tbody>
+  <tfoot><tr><td></td></tr></tfoot>
+</table>
+</body></html>`;
+}
+
+Object.assign(window, { ContratoEditorPage, gerarContratoPDF });
