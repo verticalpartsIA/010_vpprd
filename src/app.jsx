@@ -19,6 +19,7 @@ const ROUTE_TITLE = {
   "eng-configurador": "Projeto de Equipamento",
   "desenho-tecnico": "Desenho Técnico ER | ES",
   juridico: "Contratos & Minutas",
+  "contrato-editor": "Editor de Contrato",
   instalacao: "Instalação em Campo",
   art: "ART de Instalação",
   cronograma: "Cronograma de Instalação",
@@ -154,7 +155,8 @@ function App() {
       case "ncm-catalogo": return <NcmCatalogoPage setRoute={setRoute}/>;
       case "eng-configurador": return <ConfiguradorPage setRoute={setRoute}/>;
       case "desenho-tecnico": return <DesenhoTecnicoPage setRoute={setRoute}/>;
-      case "juridico": return <JuridicoPage setRoute={setRoute}/>;
+      case "juridico": return <JuridicoPage setRoute={setRoute} setSubsel={setSubsel}/>;
+      case "contrato-editor": return <ContratoEditorPage contrato={subsel} setRoute={setRoute} onSaved={() => {}} />;
       case "instalacao": return <InstalacaoPage/>;
       case "art": return <ArtPage/>;
       case "cronograma": return <CronogramaPage/>;

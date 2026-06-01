@@ -261,32 +261,23 @@ function EngenhariaPage({ setRoute }) {
   );
 }
 
-/* ---------- JURÍDICO — Contract page redactor =================== */
-function JuridicoPage({ setRoute }) {
+/* ---------- JURÍDICO — lista idêntica ao PropostasPage =================== */
+function JuridicoPage({ setRoute, setSubsel }) {
   const [contratos, setContratos] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [filter, setFilter] = React.useState("Todos");
-  const [tipoTab, setTipoTab] = React.useState("cliente");
-  const [selectedContract, setSelectedContract] = React.useState(null);
-  const [showNovoContrato, setShowNovoContrato] = React.useState(false);
-  const filters = ["Todos", "Aguardando assinatura", "Em redação", "Em assinatura digital", "Assinado"];
+  const [loading, setLoading]     = React.useState(true);
+  const [showNovo, setShowNovo]   = React.useState(false);
 
-  const reloadContratos = () => {
+  const reload = () => {
     setLoading(true);
     window.__VP_SB.sb.from('contratos').select('*').order('issued_date', { ascending: false })
       .then(({ data }) => { setContratos(data || []); setLoading(false); });
   };
-  React.useEffect(() => { reloadContratos(); }, []);
+  React.useEffect(() => { reload(); }, []);
 
-  if (loading) return <div style={{ textAlign:'center', padding:'60px 0', color:'var(--fg3)', fontSize:13 }}>Carregando…</div>;
-
-  // Filtra por tipo e status
-  const rows = contratos.filter(c => {
-    const tipo = c.tipo_contrato || 'cliente';
-    if (tipo !== tipoTab) return false;
-    return filter === "Todos" || c.status === filter;
-  });
-  const activeContract = selectedContract?.tipo_contrato === tipoTab ? selectedContract : rows[0] || null;
+  const openEditor = (c) => {
+    setSubsel && setSubsel(c);
+    setRoute('contrato-editor');
+  };
 
   return (
     <div className="page fade-in">
@@ -297,119 +288,96 @@ function JuridicoPage({ setRoute }) {
           <p className="page-head__sub">Minuta contratual, preenchimento, redação de páginas confidenciais e envio para assinatura digital.</p>
         </div>
         <div className="page-head__r">
-          <Button variant="primary" icon="plus" onClick={() => setShowNovoContrato(true)}>Novo contrato</Button>
+          <Button variant="outline" icon="upload" onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept='.pdf,.docx'; inp.onchange = e => { const f=e.target.files?.[0]; if(f) window.toast(`Minuta "${f.name}" importada.`,'success'); }; inp.click(); }}>Importar minuta</Button>
+          <Button variant="primary" icon="plus" onClick={() => setShowNovo(true)}>Novo contrato</Button>
         </div>
-      </div>
-
-      {/* TABS DE TIPO — como Elevador / Escada / Esteira em Propostas */}
-      <div className="contrato-tipo-tabs">
-        <button className={"contrato-tipo-tab" + (tipoTab === "cliente" ? " is-on" : "")}
-          onClick={() => { setTipoTab("cliente"); setSelectedContract(null); }}>
-          📄 Contrato do Cliente
-        </button>
-        <button className={"contrato-tipo-tab contrato-tipo-tab--soon" + (tipoTab === "montador" ? " is-on" : "")}
-          onClick={() => { setTipoTab("montador"); setSelectedContract(null); }}
-          title="Em breve">
-          🔧 Contrato do Montador
-        </button>
       </div>
 
       <div className="grid-4" style={{ marginBottom: 20 }}>
-        <KPI label="Em redação" value={contratos.filter(c => (c.tipo_contrato||'cliente') === tipoTab && c.status === "Em redação").length} sub="aguardando" icon="edit"/>
-        <KPI label="Em assinatura" value={contratos.filter(c => (c.tipo_contrato||'cliente') === tipoTab && c.status === "Em assinatura digital").length} sub="aguardando cliente" icon="signature"/>
-        <KPI label="Assinados" value={contratos.filter(c => (c.tipo_contrato||'cliente') === tipoTab && c.status === "Assinado").length} sub="fase Compra liberada" icon="check"/>
-        <KPI label="Atrasados" value={String(contratos.filter(c => (c.tipo_contrato||'cliente') === tipoTab && (c.days_pending||0) > 7).length)} sub="ação necessária" icon="warning"/>
+        <KPI label="Contratos no ar"    value={contratos.length}                                                    sub="total de contratos"   icon="fileText"/>
+        <KPI label="Em assinatura"      value={contratos.filter(c => c.status === "Em assinatura digital").length}  sub="aguardando cliente"   icon="signature"/>
+        <KPI label="Assinados"          value={contratos.filter(c => c.status === "Assinado").length}               sub="fase Compra liberada"  icon="check"/>
+        <KPI label="Em redação"         value={contratos.filter(c => c.status === "Em redação").length}             sub="aguardando jurídico"   icon="edit"/>
       </div>
 
-      <div className="tbar">
-        <div className="seg">
-          {filters.map(s => (
-            <button key={s} className={filter === s ? "is-active" : ""} onClick={() => setFilter(s)}>{s}</button>
-          ))}
-        </div>
-        <div className="spacer"/>
-        <Button variant="outline" size="sm" icon="upload" onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept='.pdf,.docx,.doc'; inp.onchange = e => { const f = e.target.files?.[0]; if (f) window.toast(`Minuta "${f.name}" importada.`, 'success'); }; inp.click(); }}>Importar minuta</Button>
-      </div>
+      {/* ===== GRID-2: lista + acesso rápido (idêntico ao PropostasPage) ===== */}
+      <div className="grid-2" style={{ gap: 20 }}>
 
-      <div className="table-wrap" style={{ marginBottom: 24 }}>
-        <table className="t">
-          <thead><tr>
-            <th>Contrato</th>
-            <th>Cliente</th>
-            <th>Proposta ref.</th>
-            <th>Advogado</th>
-            <th>Status</th>
-            <th className="text-right">Valor</th>
-            <th>Dias</th>
-            <th></th>
-          </tr></thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={99} style={{ textAlign:'center', padding:'48px 0', color:'var(--fg3)', fontSize:13 }}>
-                Nenhum contrato cadastrado para este tipo.
-                <br/><span style={{ fontSize:11, marginTop:4, display:'block' }}>Clique em "Novo contrato" para criar.</span>
-              </td></tr>
+        {/* Contratos em andamento */}
+        <Card title="Contratos em andamento" sub={`${contratos.length} registros`}
+          action={<Button variant="ghost" size="sm" icon="filter"/>}>
+          <div className="stack" style={{ gap: 12 }}>
+            {loading && <div style={{ textAlign:'center', padding:'32px 0', color:'var(--fg3)', fontSize:13 }}>Carregando…</div>}
+            {!loading && contratos.length === 0 && (
+              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--fg3)', fontSize:13 }}>Nenhum contrato cadastrado.</div>
             )}
-            {rows.map((c) => (
-              <tr key={c.id} style={{ cursor: "pointer", background: activeContract?.id === c.id ? "var(--vp-gray-50)" : "" }}
-                onClick={() => setSelectedContract(c)}>
-                <td>
-                  <div className="cell-main">{c.id}</div>
-                  <div className="cell-sub">{fmtDate(c.issued || c.issued_date)}</div>
-                </td>
-                <td>{c.client}</td>
-                <td><span className="cell-sub">{c.project_id || c.projeto || '—'}</span></td>
-                <td>{c.lawyer || '—'}</td>
-                <td><StatusBadge status={c.status}/></td>
-                <td className="cell-money">{fmtBRL(c.value)}</td>
-                <td>
-                  {(() => { const d = c.days ?? c.days_pending ?? 0; return (
-                    <span className="cell-num" style={{ color: d > 7 ? "var(--vp-danger)" : d > 0 ? "var(--vp-warning-ink)" : "var(--fg3)" }}>
-                      {d === 0 ? "—" : d + "d"}
-                    </span>
-                  ); })()}
-                </td>
-                <td><Button variant="ghost" size="sm" icon="chevRight"/></td>
-              </tr>
+            {contratos.map((c) => (
+              <div key={c.id} className="card" style={{ padding: 14, cursor: 'pointer' }} onClick={() => openEditor(c)}>
+                <div className="row sb">
+                  <div>
+                    <div className="cell-main" style={{ fontSize: 14 }}>{c.client || c.id}</div>
+                    <div className="cell-sub">{c.id} · {c.issued_date ? new Date(c.issued_date).toLocaleDateString('pt-BR') : '—'}</div>
+                  </div>
+                  <StatusBadge status={c.status || 'Em redação'}/>
+                </div>
+                <div className="row sb" style={{ marginTop: 10 }}>
+                  <div className="cell-money mono" style={{ fontSize: 16, fontWeight: 700 }}>{c.value ? fmtBRL(c.value) : '—'}</div>
+                  <Button variant="ghost" size="sm" iconRight="arrowRight">Editar</Button>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </Card>
 
-      {/* Editor do contrato selecionado */}
-      {activeContract ? (
-        tipoTab === "cliente" ? (
-          <div>
-            <div className="row sb" style={{ marginBottom:12 }}>
-              <div>
-                <div className="cell-main">{activeContract.id} · {activeContract.client}</div>
-                <div className="cell-sub">{activeContract.project_id || activeContract.projeto || ''} · <StatusBadge status={activeContract.status}/></div>
+        {/* Acesso Rápido — idêntico ao card de Propostas */}
+        <Card title="Acesso Rápido" sub="abra o editor com um clique" sharp
+          action={<Button variant="primary" size="sm" icon="plus" onClick={() => setShowNovo(true)}>Novo contrato</Button>}>
+          <div className="stack" style={{ gap: 10 }}>
+            {/* Banner preto — exatamente igual ao de Propostas */}
+            <div onClick={() => setShowNovo(true)}
+              style={{ padding: 18, background: '#000', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, position: 'relative' }}>
+              <span style={{ position: 'absolute', top: 0, left: 0, width: 24, height: 3, background: 'var(--vp-yellow)' }}/>
+              <Icon.fileText size={28} color="var(--vp-yellow)"/>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, textTransform: 'uppercase' }}>Abrir Editor de Contrato</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: 'var(--font-mono)', marginTop: 2, letterSpacing: '.04em' }}>2 tipos · Cliente · Montador · Preview ao vivo</div>
+              </div>
+              <Icon.arrowRight color="var(--vp-yellow)"/>
+            </div>
+
+            {/* Cards de tipo — como Elevador / Escada / Esteira */}
+            <div className="grid-2" style={{ gap: 8 }}>
+              {/* Contrato do Cliente */}
+              <div onClick={() => setShowNovo(true)} style={{ padding: 12, background: '#fff', border: '2px solid var(--vp-yellow)', cursor: 'pointer', position: 'relative', minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'var(--vp-yellow)' }}/>
+                <div style={{ paddingTop: 8 }}>
+                  <div style={{ fontSize: 28, marginBottom: 4 }}>📄</div>
+                  <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--fg1)', marginBottom: 4 }}>Contrato do Cliente</div>
+                  <div style={{ fontSize: 9, color: 'var(--fg3)', lineHeight: 1.4 }}>Compra e venda · Instalação · 16 páginas · Minuta VerticalParts</div>
+                </div>
+                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--fg3)', marginTop: 8 }}>{contratos.filter(c=>(c.tipo_contrato||'cliente')==='cliente').length} contratos</div>
+              </div>
+              {/* Contrato do Montador */}
+              <div style={{ padding: 12, background: '#fff', border: '1px solid var(--border)', cursor: 'not-allowed', position: 'relative', minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: .55 }}>
+                <div>
+                  <div style={{ fontSize: 28, marginBottom: 4 }}>🔧</div>
+                  <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--fg1)', marginBottom: 4 }}>Contrato do Montador</div>
+                  <div style={{ fontSize: 9, color: 'var(--fg3)', lineHeight: 1.4 }}>Prestação de serviços · Instalação · Terceiros</div>
+                </div>
+                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', background: 'var(--vp-yellow)', color: '#000', fontWeight: 800, padding: '2px 6px', width: 'fit-content' }}>EM BREVE</div>
               </div>
             </div>
-            <ContratoClienteEditor
-              key={activeContract.id}
-              contrato={activeContract}
-              onSaved={reloadContratos}/>
-          </div>
-        ) : (
-          /* Montador — em breve */
-          <div style={{ textAlign:'center', padding:'60px 20px', color:'var(--fg3)', fontSize:13, border:'1px dashed var(--border)' }}>
-            <div style={{ fontSize:32, marginBottom:8 }}>🔧</div>
-            <strong>Contrato do Montador</strong>
-            <p style={{ marginTop:4, fontSize:12 }}>Em construção — baseado na MINUTA DOS TERCEIROS.</p>
-          </div>
-        )
-      ) : (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', border:'1px dashed var(--border)', color:'var(--fg3)', fontSize:13, padding:'60px 20px', textAlign:'center' }}>
-          Selecione um contrato na tabela ou crie um novo.
-        </div>
-      )}
 
-      {showNovoContrato && (
+            <p className="small muted" style={{ marginTop: 6 }}>O editor é a forma recomendada de criar e preencher contratos. Baseado na Minuta Contratual VerticalParts.</p>
+          </div>
+        </Card>
+      </div>
+
+      {showNovo && (
         <ModalNovoContrato
-          tipoDefault={tipoTab}
-          onClose={() => setShowNovoContrato(false)}
-          onSaved={reloadContratos}/>
+          tipoDefault="cliente"
+          onClose={() => setShowNovo(false)}
+          onSaved={() => { reload(); setShowNovo(false); }}/>
       )}
     </div>
   );
