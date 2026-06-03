@@ -486,14 +486,40 @@ function FtGenerator({ initial, onSaved, onCancel }) {
         <FtAddCategoryModal onAdd={addCategory} onClose={() => setModal(null)}/>
       )}
 
-      {overlay && (
+      {overlay && ReactDOM.createPortal(
         <div className="ft-ficha-overlay" onClick={(e) => { if (e.target.classList.contains('ft-ficha-overlay')) setOverlay(false); }}>
           <div className="ft-fo-bar">
             <span>Ficha Técnica — {state.identificacao.nomeProduto}</span>
             <div className="ft-fo-actions">
-              <button className="ft-btn primary" onClick={() => {
-                // Lê a orientação atual da ficha (definida pela imagem) e
-                // injeta @page correspondente. Garante 1 página exata sem brancos.
+              <button className="ft-btn primary" onClick={async () => {
+                // SALVAR PDF DIRETO — gera o arquivo sem caixa de impressão.
+                // html2pdf renderiza o nó como canvas e empacota em PDF A4.
+                if (!window.html2pdf) { alert('Biblioteca PDF ainda carregando…'); return; }
+                const fichaEl = document.querySelector('.ft-ficha-overlay .ft-ficha');
+                if (!fichaEl) return;
+                const ori = fichaEl.getAttribute('data-orientation') || 'landscape';
+                const safeName = (state.identificacao.nomeProduto || 'ficha-tecnica')
+                  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                  .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+                const opt = {
+                  margin: 0,
+                  filename: `Ficha-${safeName}.pdf`,
+                  image: { type: 'jpeg', quality: 0.97 },
+                  html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+                  jsPDF: { unit: 'mm', format: 'a4', orientation: ori, compress: true }
+                };
+                try {
+                  await window.html2pdf().set(opt).from(fichaEl).save();
+                } catch (err) {
+                  console.error('html2pdf error', err);
+                  alert('Erro ao gerar PDF: ' + (err.message || err));
+                }
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Salvar PDF
+              </button>
+              <button className="ft-btn dark" onClick={() => {
+                // Imprimir/visualizar via navegador. Injeta @page conforme orientação.
                 const ficha = document.querySelector('.ft-ficha-overlay .ft-ficha');
                 const ori = (ficha && ficha.getAttribute('data-orientation')) || 'landscape';
                 let inj = document.getElementById('__ft-print-page');
@@ -505,13 +531,14 @@ function FtGenerator({ initial, onSaved, onCancel }) {
                 setTimeout(() => window.print(), 60);
               }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
-                Imprimir / Salvar PDF
+                Imprimir
               </button>
               <button className="ft-btn ghost" onClick={() => setOverlay(false)}>Fechar</button>
             </div>
           </div>
           <div className="ft-fo-scroll"><FtFicha state={state}/></div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

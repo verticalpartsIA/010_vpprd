@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="styles/desenho-tecnico.css?v=1">
   <link rel="stylesheet" href="styles/contrato-instalador.css?v=1">
   <link rel="stylesheet" href="styles/contrato-venda.css?v=1">
-  <link rel="stylesheet" href="styles/ficha-tecnica.css?v=2">
+  <link rel="stylesheet" href="styles/ficha-tecnica.css?v=3">
 
   <!-- React + Babel pinned versions -->
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
@@ -24,6 +24,9 @@
 
   <!-- Supabase JS client (CDN, sem build step) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <!-- html2pdf — Ficha Técnica salva PDF direto sem caixa de impressão -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="vp" data-density="cozy">
   <div id="root"></div>
@@ -91,7 +94,7 @@
   <!-- Engenharia · Ficha Técnica (gerador universal) -->
   <script src="src/ficha-tecnica-engine.js?v=1"></script>
   <script src="src/ficha-tecnica-store.js?v=1"></script>
-  <script type="text/babel" src="src/ficha-tecnica.jsx?v=2"></script>
+  <script type="text/babel" src="src/ficha-tecnica.jsx?v=3"></script>
 
   <!-- Main app last -->
   <script type="text/babel" src="src/app.jsx?v=17"></script>

@@ -369,10 +369,16 @@
   min-width: 0; min-height: 0;
 }
 .ft-fz-titlebar {
-  height: 34px; display: flex; align-items: center; padding: 0 14px;
-  font-weight: 800; font-size: 14.5px;
+  min-height: 30px;
+  display: flex; align-items: center;
+  padding: 6px 14px;
+  font-weight: 800; font-size: 13.5px;
   letter-spacing: .01em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+  /* permite quebrar linha em títulos longos (BOTOEIRA DE CABINA VIDRO PRETO etc.) */
+  white-space: normal; overflow: visible; text-overflow: clip;
+  word-break: break-word;
+  flex-shrink: 0;
 }
 .ft-tb-yellow { background: var(--ft-yellow); color: var(--ft-black); }
 .ft-tb-black { background: var(--ft-black); color: var(--ft-white); }

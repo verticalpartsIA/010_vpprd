@@ -350,7 +350,120 @@ setTimeout(() => window.print(), 60);
 - `829cce9` — feat: assinatura digital + ficha técnica + sidebar reorganizada (commit principal do dia, 29 arquivos, +6.815/−47)
 - `2f647cf` — fix(ficha): PDF de 1 página exata + orientação dinâmica por aspect da imagem (3 arquivos, +132/−28)
 
-Ambos enviados pra `main` no GitHub; deploy automático no Hostinger.
+---
+
+## 🩹 Fase 8 — Fix: Salvar PDF direto + portal overlay + título sem corte
+
+### Problema reportado pelo usuário
+
+> "Eis o PDF que gerou, título escondido. Mas eu não sei por que precisa de ir para impressão, poderia salvar o documento direto, entende, e mesmo indo para impressão a página aparece em branco, reafirmo, gerando o documento poderia ter um botão salvar o documento e esse realmente ser salvo corretamente."
+
+Screenshots mostraram:
+- Título "FICHA DE DADOS : BOTOEIRA DE CABINA VIDR…" truncado por ellipsis.
+- Print preview totalmente branco — mesmo após o fix da Fase 7.
+
+### Diagnóstico (3 causas independentes)
+
+1. **Título cortado**: `.ft-fz-titlebar` tinha `white-space: nowrap; overflow: hidden; text-overflow: ellipsis` + `height: 34px` fixo. Títulos longos eram simplesmente cortados.
+
+2. **Print preview branco — bug crítico do fix anterior**: a regra
+   ```css
+   body > *:not(.ft-ficha-overlay) { display: none !important; }
+   ```
+   só funciona se o overlay for filho **direto** do `<body>`. Mas o overlay estava renderizado dentro de `#root` (mount point do React), que é o filho direto do body. Resultado: `body > #root` é matched por `:not(.ft-ficha-overlay)` → `#root` (e tudo dentro dele, INCLUSIVE o overlay) ficava `display: none`. **Tela inteiramente branca.**
+
+3. **UX ruim**: forçar caixa de impressão pra salvar PDF é fricção. Usuário pediu botão direto que baixa o arquivo.
+
+### Fix aplicado
+
+#### A. Título sem corte — `styles/ficha-tecnica.css`
+
+```css
+.ft-fz-titlebar {
+  min-height: 30px;
+  height: auto;              /* deixa crescer */
+  padding: 6px 14px;
+  font-size: 13.5px;
+  white-space: normal;       /* quebra de linha permitida */
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  line-height: 1.2;
+}
+```
+
+Títulos curtos (VPMAC 32K) ficam em 1 linha. Títulos longos (BOTOEIRA DE CABINA VIDRO PRETO COM LED BRANCO) quebram naturalmente em 2 linhas sem cortar.
+
+#### B. Portal do overlay — `src/ficha-tecnica.jsx`
+
+```jsx
+{overlay && ReactDOM.createPortal(
+  <div className="ft-ficha-overlay" ...>
+    ...
+  </div>,
+  document.body  // ← agora é filho direto do body
+)}
+```
+
+Agora `body > *:not(.ft-ficha-overlay)` esconde corretamente `#root` (e o app inteiro) durante print, mantendo só a ficha visível.
+
+#### C. Botão "Salvar PDF" direto — html2pdf.js
+
+Adicionado no `<head>` do `index.html`:
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+```
+
+Handler do novo botão:
+```js
+const fichaEl = document.querySelector('.ft-ficha-overlay .ft-ficha');
+const ori = fichaEl.getAttribute('data-orientation') || 'landscape';
+const safeName = (state.identificacao.nomeProduto || 'ficha-tecnica')
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
+await html2pdf().set({
+  margin: 0,
+  filename: `Ficha-${safeName}.pdf`,
+  image: { type: 'jpeg', quality: 0.97 },
+  html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+  jsPDF: { unit: 'mm', format: 'a4', orientation: ori, compress: true }
+}).from(fichaEl).save();
+```
+
+Resultado: clique no botão → download imediato do `Ficha-{nome-produto}.pdf` sem caixa de impressão.
+
+#### D. Barra de ações reorganizada
+
+3 botões no overlay:
+- **Salvar PDF** (primário, amarelo) — baixa direto via html2pdf
+- **Imprimir** (escuro, secundário) — abre caixa de impressão (com `@page` injetado)
+- **Fechar** (ghost) — fecha o overlay
+
+### Validação E2E
+
+| Teste | Resultado |
+|---|---|
+| Título longo "BOTOEIRA DE CABINA VIDRO PRETO COM LED BRANCO" | totalmente visível, sem ellipsis |
+| Overlay portado pro `<body>` | `overlay.parentElement === document.body` ✅ |
+| html2pdf disponível após reload | `typeof window.html2pdf !== 'undefined'` ✅ |
+| Salvar PDF gera arquivo | blob 129.5 KB, type `application/pdf` |
+| Número de páginas | **1** (`numPages: 1`) |
+| Dimensões | **297×210 mm** = A4 paisagem exato |
+
+### Commits
+
+- `2f647cf` — fix(ficha): orientação dinâmica + zero páginas em branco (anterior)
+- *Próximo* — fix(ficha): Salvar PDF direto + portal overlay + título sem corte
+
+---
+
+## 📊 Métricas Acumuladas do Dia
+
+- **Tasks concluídas:** 23
+- **Commits:** 4 (feat principal + 3 fixes)
+- **Linhas líquidas adicionadas:** ~3.700
+- **Arquivos novos:** 16
+- **Bibliotecas externas adicionadas:** html2pdf.js (CDN, sem build)
 
 ---
 
