@@ -41,9 +41,22 @@ async function callNcmAssist(payload) {
 /* ---------- Helpers ---------- */
 function pctOf(v) { return Math.round((Number(v) || 0) * 100); }
 
+/* Posição clampada para garantir que o elemento sempre fique visível,
+   independente do tamanho atual (bolinha 56px ou card ~360px) e do viewport. */
+function clampPos(p, w, h) {
+  const margin = 8;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  return {
+    x: Math.max(margin, Math.min(vw - w - margin, p.x)),
+    y: Math.max(margin, Math.min(vh - h - margin, p.y)),
+  };
+}
+function defaultBubblePos() {
+  return { x: window.innerWidth - 56 - 24, y: window.innerHeight - 56 - 24 };
+}
 function readPos() {
-  try { const p = JSON.parse(localStorage.getItem(CP_LS_POS) || 'null'); if (p) return p; } catch (e) {}
-  return { x: window.innerWidth - 80, y: window.innerHeight - 100 };
+  try { const p = JSON.parse(localStorage.getItem(CP_LS_POS) || 'null'); if (p && typeof p.x === 'number') return p; } catch (e) {}
+  return defaultBubblePos();
 }
 function writePos(p) { try { localStorage.setItem(CP_LS_POS, JSON.stringify(p)); } catch (e) {} }
 function readOpen() {
@@ -91,6 +104,16 @@ function FtCopiloto({ state, setState }) {
   /* persistência leve da posição/estado */
   _cpUE(() => writePos(pos), [pos]);
   _cpUE(() => writeOpen(open), [open]);
+
+  /* Re-clampa a posição quando trocar entre bolinha (56px) e card (360x500ish)
+     ou quando a janela for redimensionada — evita ficar fora da tela. */
+  _cpUE(() => {
+    const size = open ? { w: 360, h: 520 } : { w: 56, h: 56 };
+    setPos((p) => clampPos(p, size.w, size.h));
+    const onResize = () => setPos((p) => clampPos(p, size.w, size.h));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [open]);
 
   /* ---------- Drag ---------- */
   const onMouseDown = (e) => {
