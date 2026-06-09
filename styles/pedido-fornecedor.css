@@ -1,0 +1,105 @@
+/* ============================================================
+   pedido-fornecedor.css — RFQ a fornecedor (prefixo pf-)
+   ============================================================ */
+
+/* ---------- Barra de seleção no Catálogo ---------- */
+.pf-selbar {
+  display: flex; align-items: center; gap: 12px;
+  background: #111; color: #fff;
+  padding: 10px 16px; border-radius: 10px; margin: 0 0 14px;
+}
+.pf-selbar b { color: var(--vp-yellow, #f5c400); }
+.pf-selbar .spacer { flex: 1; }
+.pf-chk { width: 16px; height: 16px; cursor: pointer; accent-color: var(--vp-yellow, #f5c400); }
+
+/* ---------- Builder: lista de quantidades ---------- */
+.pf-qty-list { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; padding-right: 4px; }
+.pf-qty-row { display: grid; grid-template-columns: 1fr auto 84px auto; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--border, #e6e6e6); border-radius: 8px; }
+.pf-qty-name { font-size: 12.5px; font-weight: 600; }
+.pf-qty-inp { width: 84px; text-align: center; }
+
+/* ---------- Overlay de preview ---------- */
+.pf-overlay { position: fixed; inset: 0; z-index: 2147483600; background: rgba(20,20,20,.55); display: flex; flex-direction: column; }
+.pf-overlay-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #111; color: #fff; }
+.pf-overlay-title { font-weight: 800; font-size: 14px; }
+/* block (não flex) para o documento CRESCER com o conteúdo e gerar várias páginas */
+.pf-overlay-scroll { flex: 1; overflow: auto; padding: 24px; }
+
+/* ---------- Documento A4 (altura automática · mínimo 1 página) ---------- */
+.pf-doc {
+  width: 210mm; min-height: 297mm; height: auto; margin: 0 auto; box-sizing: border-box;
+  background: #fff; color: #1a1a1a; padding: 16mm 14mm;
+  font-size: 10.5px; line-height: 1.4;
+  box-shadow: 0 8px 40px rgba(0,0,0,.3);
+}
+.pf-doc-head { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 3px solid #111; padding-bottom: 8px; }
+.pf-doc-title { font-size: 20px; font-weight: 800; letter-spacing: .01em; }
+.pf-doc-num { font-size: 11px; color: #555; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.pf-doc-logo { font-size: 15px; letter-spacing: .04em; }
+.pf-doc-logo b { color: #d8a900; }
+
+.pf-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.pf-party { border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; }
+.pf-party-lbl { font-size: 8.5px; text-transform: uppercase; letter-spacing: .08em; color: #999; font-weight: 700; margin-bottom: 3px; }
+.pf-party b { font-size: 12px; }
+.pf-party div { color: #444; }
+
+.pf-sec-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #b8860b; font-weight: 800; margin-bottom: 4px; }
+.pf-intro { margin: 10px 0; }
+.pf-intro p { margin: 0; }
+
+.pf-field { margin-top: 6px; }
+.pf-field-lbl { font-size: 8.5px; text-transform: uppercase; letter-spacing: .06em; color: #999; font-weight: 700; margin-bottom: 2px; }
+.pf-field-vals.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pf-val { font-size: 10.5px; }
+.pf-val-en { color: #555; font-style: italic; }
+
+/* ---------- Itens ---------- */
+.pf-items { margin-top: 10px; }
+.pf-item { display: grid; grid-template-columns: 22px 32mm 1fr; gap: 10px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
+.pf-item-n { width: 22px; height: 22px; border-radius: 50%; background: #111; color: var(--vp-yellow, #f5c400); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; }
+.pf-item-photo { width: 32mm; height: 32mm; border: 1px solid #eee; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #fafafa; }
+.pf-item-photo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.pf-no-photo { font-size: 9px; color: #bbb; text-align: center; }
+.pf-item-body { min-width: 0; }
+.pf-item-meta { display: flex; gap: 16px; margin: 4px 0; font-size: 10px; color: #333; }
+.pf-item-sku {
+  display: inline-block; font-size: 11px; color: #111; font-weight: 700;
+  background: var(--vp-yellow, #f5c400); padding: 2px 9px; border-radius: 4px;
+  letter-spacing: .02em; margin-bottom: 5px;
+}
+.pf-item-sku b { font-weight: 800; }
+
+.pf-specs { margin-top: 6px; }
+.pf-specs-t { width: 100%; border-collapse: collapse; }
+.pf-specs-t td { border: 1px solid #ececec; padding: 2px 6px; font-size: 9.5px; vertical-align: top; }
+.pf-spec-k { color: #666; width: 42%; }
+.pf-spec-v { font-weight: 600; }
+
+/* Tabela de cotação — colunas em branco p/ o fornecedor */
+.pf-quote-t { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.pf-quote-t th { background: #111; color: #fff; font-size: 8.5px; text-transform: uppercase; letter-spacing: .04em; padding: 4px 6px; text-align: left; font-weight: 700; }
+.pf-quote-t td { border: 1px solid #ddd; padding: 6px; height: 22px; }
+.pf-q-given { background: #f6f6f6; font-weight: 700; font-size: 10px; }
+.pf-q-blank { background: repeating-linear-gradient(45deg, #fff, #fff 6px, #fcfcf3 6px, #fcfcf3 12px); }
+
+.pf-doc-foot { margin-top: 12px; border-top: 1px dashed #ccc; padding-top: 6px; font-size: 9px; color: #b8860b; font-weight: 700; }
+
+/* ---------- Envio: callout do portal + linkbox ---------- */
+.pf-portal-callout { display: flex; gap: 12px; align-items: flex-start; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; }
+.pf-portal-ico { font-size: 20px; line-height: 1; }
+.pf-portal-callout b { font-size: 13px; }
+.pf-portal-callout p { margin: 3px 0 0; font-size: 12px; color: #3f6b4f; line-height: 1.45; }
+.pf-linkbox { display: flex; gap: 8px; align-items: center; }
+.pf-linkbox .input { flex: 1; min-width: 0; }
+
+/* ---------- Resposta do fornecedor ---------- */
+.pf-resp-head { display: flex; flex-wrap: wrap; gap: 18px 28px; padding: 12px 14px; background: var(--surface-2, #f7f7f7); border-radius: 10px; }
+.pf-resp-head > div { display: flex; flex-direction: column; gap: 2px; }
+.pf-resp-head b { font-size: 13.5px; }
+
+/* impressão */
+@media print {
+  .pf-overlay-bar { display: none !important; }
+  .pf-doc { box-shadow: none; }
+}

@@ -135,6 +135,13 @@ app.get('/assinar/:token', (_req, res) => {
   res.sendFile(path.join(__dirname, 'assinar.html'));
 });
 
+/* ---------- Portal público de cotação (fornecedor) ----------
+   /cotacao/<token> → entrega cotacao.html. O token é lido no client. */
+app.get('/cotacao/:token', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(path.join(__dirname, 'cotacao.html'));
+});
+
 /* ---------- Estáticos ---------- */
 app.use(express.static(path.join(__dirname), {
   index: 'index.html',

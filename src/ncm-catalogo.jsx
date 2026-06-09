@@ -382,6 +382,9 @@ function NcmCatalogoPage({ setRoute }) {
   const [selOp, setSelOp] = React.useState(null);
   const [showProd, setShowProd] = React.useState(false);
   const [showOp, setShowOp] = React.useState(false);
+  const [sel, setSel] = React.useState(() => new Set());
+  const [showBuilder, setShowBuilder] = React.useState(false);
+  const [previewPedido, setPreviewPedido] = React.useState(null);
 
   const reload = React.useCallback(() => {
     setLoading(true);
@@ -472,6 +475,7 @@ function NcmCatalogoPage({ setRoute }) {
       <Tabs tabs={[
         { key:"produtos", label:"Produtos", icon:"package", count:produtos.length },
         { key:"operadores", label:"Operadores estrangeiros", icon:"globe", count:operadores.length },
+        { key:"pedidos", label:"Pedidos a fornecedor", icon:"fileText" },
       ]} active={tab} onChange={(t) => { setTab(t); setFilter("Todos"); }}/>
 
       {tab === "produtos" ? (
@@ -481,16 +485,16 @@ function NcmCatalogoPage({ setRoute }) {
           <KPI label="Desativados" value={produtos.filter(p => p.situacao === "desativado").length} sub="fora de uso" icon="x"/>
           <KPI label="NCMs distintas" value={new Set(produtos.map(p => p.ncm).filter(Boolean)).size} sub="códigos em uso" icon="globe"/>
         </div>
-      ) : (
+      ) : tab === "operadores" ? (
         <div className="grid-4" style={{ margin:"20px 0" }}>
           <KPI label="Operadores ativos" value={operadores.filter(o => o.situacao === "ativado").length} sub="fabricantes/exportadores" icon="check"/>
           <KPI label="Países" value={new Set(operadores.map(o => o.pais).filter(Boolean)).size} sub="origens" icon="globe"/>
           <KPI label="Desativados" value={operadores.filter(o => o.situacao === "desativado").length} sub="fora de uso" icon="x"/>
           <KPI label="Total" value={operadores.length} sub="cadastrados" icon="package"/>
         </div>
-      )}
+      ) : null}
 
-      <div className="tbar">
+      {tab !== "pedidos" && <div className="tbar">
         <div className="seg">
           {sitFilters.map(s => (
             <button key={s} className={filter === s ? "is-active" : ""} onClick={() => setFilter(s)}>
@@ -503,13 +507,30 @@ function NcmCatalogoPage({ setRoute }) {
           <Icon.search size={12} color="var(--fg3)"/>
           <input placeholder={tab === "produtos" ? "Buscar produto, NCM, código…" : "Buscar operador, país…"} value={search} onChange={(e) => setSearch(e.target.value)}/>
         </div>
-      </div>
+      </div>}
 
+      {tab === "produtos" && sel.size > 0 && (
+        <div className="pf-selbar">
+          <b>{sel.size}</b>&nbsp;{sel.size === 1 ? "produto selecionado" : "produtos selecionados"}
+          <div className="spacer"/>
+          <Button variant="ghost" size="sm" onClick={() => setSel(new Set())}>Limpar</Button>
+          <Button variant="primary" size="sm" icon="fileText" onClick={() => setShowBuilder(true)}>Gerar pedido a fornecedor</Button>
+        </div>
+      )}
+
+      {tab === "pedidos" ? (
+        <window.PedidosList onReopen={(r) => setPreviewPedido(r)}/>
+      ) : (
       <div className="cat-split">
         <div className="table-wrap">
           {tab === "produtos" ? (
             <table className="t">
               <thead><tr>
+                <th style={{ width: 32 }}>
+                  <input type="checkbox" className="pf-chk"
+                    checked={prodRows.length > 0 && prodRows.every(p => sel.has(p.id))}
+                    onChange={(e) => { const n = new Set(sel); if (e.target.checked) prodRows.forEach(p => n.add(p.id)); else prodRows.forEach(p => n.delete(p.id)); setSel(n); }}/>
+                </th>
                 <th>Produto</th><th>NCM</th><th>Código</th><th>Cód. interno</th><th>Versão</th><th>Situação</th>
               </tr></thead>
               <tbody>
@@ -519,6 +540,10 @@ function NcmCatalogoPage({ setRoute }) {
                 {prodRows.map(p => (
                   <tr key={p.id} onClick={() => setSelProd(p.id)}
                     style={p.id === selProd ? { background:"#FFFBE6", boxShadow:"inset 3px 0 0 0 var(--vp-yellow)" } : null}>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" className="pf-chk" checked={sel.has(p.id)}
+                        onChange={() => { const n = new Set(sel); n.has(p.id) ? n.delete(p.id) : n.add(p.id); setSel(n); }}/>
+                    </td>
                     <td><div className="cell-main" style={{ fontSize:12.5, lineHeight:1.3 }}>{p.denominacao || <span className="muted">(sem denominação)</span>}</div></td>
                     <td>{p.ncm ? <span className="sku">{p.ncm}</span> : <span className="muted">—</span>}</td>
                     <td><span className="cell-sub mono">{p.codigo}</span></td>
@@ -562,6 +587,17 @@ function NcmCatalogoPage({ setRoute }) {
               ? <OperadorDetail o={selectedOp} onAct={actOp}/>
               : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", border:"1px dashed var(--border)", color:"var(--fg3)", fontSize:13, padding:"60px 20px", textAlign:"center" }}>Selecione um operador para ver os detalhes.</div>)}
       </div>
+      )}
+
+      {showBuilder && <window.PedidoBuilderModal
+        produtos={produtos.filter(p => sel.has(p.id))}
+        operadores={operadores}
+        onClose={() => setShowBuilder(false)}
+        onCreated={(pedido) => { setShowBuilder(false); setSel(new Set()); setPreviewPedido(pedido); }}/>}
+      {previewPedido && <window.PedidoPreviewOverlay
+        pedido={previewPedido}
+        onClose={() => setPreviewPedido(null)}
+        onSaved={() => {}}/>}
 
       {showProd && <ModalProdutoCatalogo operadores={operadores} proximoCodigo={nextCodigo(produtos)} onClose={() => setShowProd(false)} onSaved={reload}/>}
       {showOp && <ModalOperadorEstrangeiro onClose={() => setShowOp(false)} onSaved={reload}/>}
