@@ -252,6 +252,8 @@
     { re: /abertura\s+direita|lado\s+direito|\bdireita\b/i,      sig: 'AD'  },
     { re: /abertura\s+esquerda|lado\s+esquerdo|\besquerda\b/i,   sig: 'AE'  },
     { re: /abertura\s+lateral/i,                                 sig: 'ALT' },
+    { re: /ranhur/i,                                             sig: 'RAN' },
+    { re: /dentad|\bdentes?\b/i,                                 sig: 'DEN' },
     /* — material / acabamento / cor — */
     { re: /a[cç]o\s+inox|\binox\b/i,                             sig: 'IN'  },
     { re: /a[cç]o\s+carbono/i,                                   sig: 'ACA' },
@@ -261,9 +263,37 @@
     { re: /alum[ií]nio/i,                                        sig: 'ALU' },
     { re: /lat[aã]o/i,                                           sig: 'LTO' },
     { re: /\bbronze\b/i,                                         sig: 'BZ'  },
+    { re: /elast[oô]mero/i,                                      sig: 'ELA' },
+    { re: /poliuretano|\bpu\b/i,                                 sig: 'PU'  },
+    { re: /pol[ií]mer|polim[eé]ric/i,                            sig: 'POL' },
+    { re: /\bpvc\b/i,                                            sig: 'PVC' },
+    { re: /\bepdm\b/i,                                           sig: 'EPDM'},
     { re: /borracha/i,                                           sig: 'BOR' },
     { re: /\bnylon\b|poliamida/i,                                sig: 'NY'  },
+    { re: /cer[aâ]mic/i,                                         sig: 'CER' },
+    { re: /ferro\s+fundido/i,                                    sig: 'FF'  },
     { re: /escovad/i,                                            sig: 'ESV' },
+    { re: /\bpreto\b/i,                                          sig: 'PTO' },
+    { re: /\bbranco\b/i,                                         sig: 'BCO' },
+    { re: /\bvermelh/i,                                          sig: 'VM'  },
+    { re: /\bazul\b/i,                                           sig: 'AZ'  },
+    { re: /\bamarel/i,                                           sig: 'AM'  },
+  ];
+
+  /* Compatibilidade com fabricante → código CC? (categoria
+     "Compatível com Fabricante" da biblioteca). CCO = Compatível Com Otis. */
+  const SKU_COMPAT = [
+    { re: /xizi/i,        sig: 'CCX'  },  // XIZI Otis ANTES de Otis
+    { re: /otis/i,        sig: 'CCO'  },
+    { re: /kone/i,        sig: 'CCK'  },
+    { re: /tk|thyssen/i,  sig: 'CCT'  },
+    { re: /schindler/i,   sig: 'CCS'  },
+    { re: /sigma|lg\b/i,  sig: 'CCSG' },
+    { re: /glarie/i,      sig: 'CCG'  },
+    { re: /seloon/i,      sig: 'CCSE' },
+    { re: /sjec/i,        sig: 'CCSJ' },
+    { re: /monarch/i,     sig: 'CCM'  },
+    { re: /bst/i,         sig: 'CCB'  },
   ];
 
   const SKU_STOPWORDS = ['de','da','do','das','dos','para','pra','com','sem','em','e','a','o','as','os','por','no','na'];
@@ -277,29 +307,59 @@
     return palavras.slice(0, 3).map((w) => w[0].toUpperCase()).join('');
   }
 
-  /* Texto consolidado: nome + descrições + campos ativos preenchidos */
+  /* Texto consolidado: nome + descrições + classificação fiscal (insumo,
+     função, é-parte-de) + categoria + campos ativos preenchidos.
+     Quanto mais a ficha sabe, mais o SKU fala. */
   function skuTexto(state) {
     const id = state.identificacao || {};
-    const partes = [id.nomeProduto, id.descricaoComercial, id.descricaoTecnica];
+    const partes = [
+      id.nomeProduto, id.descricaoComercial, id.descricaoTecnica, id.categoriaProduto,
+      state.insumo, state.funcao_aplicacao, state.eh_parte_de,
+    ];
     (state.cats || []).forEach((c) => (c.campos || []).forEach((f) => {
       if (f.ativo && String(f.valor || '').trim() !== '') partes.push(f.nome + ' ' + f.valor + ' ' + (f.unidade || ''));
     }));
     return partes.filter(Boolean).join(' · ');
   }
 
-  /* Dimensões: padrão 800x2100 no texto OU par de campos (vão/largura + altura) */
+  /* Dimensões, em ordem de prioridade:
+     1. padrão explícito "800x2100" em qualquer texto
+     2. par vão/largura/abertura + altura
+     3. quaisquer 2 primeiras medidas ativas de Dimensões Físicas (30X3)
+     4. medida única → letra do campo + valor (L30, D52, E3) */
   function skuDimensoes(state, texto) {
     const m = texto.match(/(\d{2,4})\s*[x×]\s*(\d{2,4})/i);
     if (m) return m[1] + 'X' + m[2];
     let vao = null, alt = null;
+    const medidas = [];
     (state.cats || []).forEach((c) => (c.campos || []).forEach((f) => {
       if (!f.ativo || String(f.valor || '').trim() === '') return;
       const v = String(f.valor).replace(/[^\d]/g, '');
       if (!v) return;
       if (/v[aã]o|largura|abertura/i.test(f.nome) && !vao) vao = v;
       if (/altura/i.test(f.nome) && !alt) alt = v;
+      if (c.id === 'dimensoes') medidas.push({ letra: f.nome[0].toUpperCase(), v, ordem: f.ordem || 0 });
     }));
-    return (vao && alt) ? vao + 'X' + alt : '';
+    if (vao && alt) return vao + 'X' + alt;
+    medidas.sort((a, b) => a.ordem - b.ordem);
+    if (medidas.length >= 2) return medidas[0].v + 'X' + medidas[1].v;
+    if (medidas.length === 1) return medidas[0].letra + medidas[0].v;
+    return '';
+  }
+
+  /* Compatibilidade: campos ativos da categoria "Compatível com Fabricante"
+     viram códigos CC? (CCO = Otis, CCK = KONE, CCS = Schindler…) */
+  function skuCompat(state) {
+    const sigs = [];
+    (state.cats || []).forEach((c) => {
+      if (!/compat/i.test(c.nome || '')) return;
+      (c.campos || []).forEach((f) => {
+        if (!f.ativo || String(f.valor || '').trim() === '') return;
+        const d = SKU_COMPAT.find((x) => x.re.test(f.nome));
+        if (d && sigs.indexOf(d.sig) === -1) sigs.push(d.sig);
+      });
+    });
+    return sigs;
   }
 
   /* Monta o SKU. Vai "nascendo sozinho" conforme a ficha é preenchida.
@@ -323,9 +383,12 @@
       if (d.re.test(texto) && caracts.indexOf(d.sig) === -1) caracts.push(d.sig);
     });
     const dim = skuDimensoes(state, texto);
+    const compat = skuCompat(state);
 
+    /* PREFIXO-TIPO-CARACTERÍSTICAS-DIMENSÕES-COMPATIBILIDADE-SEQ */
     const partes = [m[1] + '-' + tipo].concat(caracts);
     if (dim) partes.push(dim);
+    partes.push.apply(partes, compat);
     partes.push(m[2]);
     return { sku: partes.join('-'), faltas: [] };
   }
