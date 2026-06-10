@@ -307,15 +307,13 @@
     return palavras.slice(0, 3).map((w) => w[0].toUpperCase()).join('');
   }
 
-  /* Texto consolidado: nome + descrições + classificação fiscal (insumo,
-     função, é-parte-de) + categoria + campos ativos preenchidos.
-     Quanto mais a ficha sabe, mais o SKU fala. */
+  /* Texto consolidado: nome + descrições + categoria + campos ativos.
+     ATENÇÃO: a seção "Classificação fiscal · NCM/DUIMP" (insumo, função/
+     aplicação, é-parte-de, forma/estado, descrição DUIMP) fica FORA do
+     SKU por decisão de negócio — é insumo fiscal, não comercial. */
   function skuTexto(state) {
     const id = state.identificacao || {};
-    const partes = [
-      id.nomeProduto, id.descricaoComercial, id.descricaoTecnica, id.categoriaProduto,
-      state.insumo, state.funcao_aplicacao, state.eh_parte_de,
-    ];
+    const partes = [id.nomeProduto, id.descricaoComercial, id.descricaoTecnica, id.categoriaProduto];
     (state.cats || []).forEach((c) => (c.campos || []).forEach((f) => {
       if (f.ativo && String(f.valor || '').trim() !== '') partes.push(f.nome + ' ' + f.valor + ' ' + (f.unidade || ''));
     }));
