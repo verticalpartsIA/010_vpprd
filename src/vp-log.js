@@ -10,13 +10,21 @@
 
   function sb() { return (window.__VP_SB || {}).sb; }
 
-  /* Ator a partir do perfil ativo do app (role). Pode ser sobrescrito
-     por ev.ator_nome (ex.: fornecedor no portal público). */
+  /* Ator: prioriza a identidade real vinda do SSO do vpsistema
+     (window.__VP_USER — nome + e-mail do convite); o role do app vira o
+     setor. Fallback: rótulo do setor. Pode ser sobrescrito por ev.ator_nome
+     (ex.: fornecedor no portal público). */
   function ator() {
     let r = 'admin';
     try { r = JSON.parse(localStorage.getItem('vpprd.role')) || 'admin'; } catch (e) {}
+    let u = window.__VP_USER;
+    if (!u) { try { u = JSON.parse(sessionStorage.getItem('vpprd_user')); } catch (e) {} }
     const nomes = { comercial: 'Comercial', engenharia: 'Engenharia', financeiro: 'Financeiro', importacao: 'Importação', admin: 'Admin' };
-    return { nome: nomes[r] || r, setor: r };
+    return {
+      nome: (u && u.nome) || nomes[r] || r,
+      setor: r,
+      email: (u && u.email) || null,
+    };
   }
 
   /* Registrar evento. Best-effort: nunca quebra o fluxo principal. */
@@ -24,6 +32,9 @@
     try {
       const c = sb(); if (!c || !ev || !ev.acao) return;
       const a = ator();
+      let detalhe = ev.detalhe || null;
+      /* anexa o e-mail real do SSO quando o ator é o usuário logado */
+      if (!ev.ator_nome && a.email) detalhe = { ...(detalhe || {}), email: a.email };
       await c.from('vp_logs').insert({
         ator_nome: ev.ator_nome || a.nome,
         ator_setor: ev.ator_setor || a.setor,
@@ -31,7 +42,7 @@
         acao: ev.acao,
         alvo: ev.alvo || null,
         alvo_id: ev.alvo_id != null ? String(ev.alvo_id) : null,
-        detalhe: ev.detalhe || null,
+        detalhe,
       });
     } catch (e) { console.warn('[VPLog] registrar falhou', e); }
   }

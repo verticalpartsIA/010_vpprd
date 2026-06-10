@@ -19,16 +19,19 @@
     });
   }
 
-  /* ---------- Ator atual (role do app = setor; sem login individual) ---------- */
+  /* ---------- Ator atual: identidade real do SSO (vpsistema) quando
+     disponível; o role do app define o setor. ---------- */
   function atorAtual(role) {
     const r = role || (function () {
       try { return JSON.parse(localStorage.getItem('vpprd.role')) || 'admin'; }
       catch (e) { return 'admin'; }
     }());
+    let u = window.__VP_USER;
+    if (!u) { try { u = JSON.parse(sessionStorage.getItem('vpprd_user')); } catch (e) {} }
     const setor = window.FWF.setor(r === 'admin' ? 'comercial' : r);
     return {
-      id: null,
-      nome: r === 'admin' ? 'Admin' : setor.label,
+      id: (u && u.id) || null,
+      nome: (u && u.nome) || (r === 'admin' ? 'Admin' : setor.label),
       setor: r === 'admin' ? 'admin' : setor.id,
     };
   }

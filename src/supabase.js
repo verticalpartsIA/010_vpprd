@@ -18,7 +18,40 @@
   // IMPORTANTE: sso_token é um JWT do projeto ubdkoqxfwcraftesgmbw (vpsistema).
   // Este app usa o projeto jxtqwzmpgofwctqajewt (vpprd) — projetos distintos,
   // JWT secrets distintos. Não é possível usar setSession() cross-project.
-  // A presença do token na URL já prova que o usuário veio pelo portal legítimo.
+  // O payload do JWT carrega a IDENTIDADE do usuário (e-mail + nome do convite):
+  // decodificamos na chegada e validamos no Auth do vpsistema (best-effort).
+  const VPSISTEMA_URL  = 'https://ubdkoqxfwcraftesgmbw.supabase.co';
+  const VPSISTEMA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InViZGtvcXhmd2NyYWZ0ZXNnbWJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjUwMjcsImV4cCI6MjA5MDY0MTAyN30.s1A15nFQVne94gbz0511L2IYvHdTcgYeL0H8YU80iI8';
+
+  function decodeJwtPayload(token) {
+    try {
+      const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(atob(b64).split('').map(function (ch) {
+        return '%' + ('00' + ch.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(json);
+    } catch (e) { return null; }
+  }
+
+  function userFromAuthPayload(p) {
+    if (!p) return null;
+    const meta = p.user_metadata || {};
+    const email = p.email || meta.email || '';
+    const nome = meta.nome || meta.name || meta.full_name || meta.display_name
+      || (email ? email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : '');
+    if (!email && !nome) return null;
+    const partes = String(nome).trim().split(/\s+/);
+    const iniciais = ((partes[0] || ' ')[0] + ((partes[1] || partes[0] || ' ')[partes.length > 1 ? 0 : 1] || '')).toUpperCase().slice(0, 2) || 'VP';
+    return { nome: nome || email, email: email, iniciais: iniciais, id: p.sub || p.id || null };
+  }
+
+  function saveUser(u) {
+    if (!u) return;
+    try { sessionStorage.setItem('vpprd_user', JSON.stringify(u)); } catch (e) {}
+    window.__VP_USER = u;
+    try { window.dispatchEvent(new CustomEvent('vpprd:user', { detail: u })); } catch (e) {}
+  }
+
   (function ssoGuard() {
     const params   = new URLSearchParams(window.location.search);
     const ssoToken = params.get('sso_token');
@@ -32,9 +65,32 @@
       return;
     }
 
-    // Token presente → registra autorização e limpa a URL
+    // Restaura usuário já capturado nesta aba (reloads)
+    try {
+      const saved = sessionStorage.getItem('vpprd_user');
+      if (saved) window.__VP_USER = JSON.parse(saved);
+    } catch (e) {}
+
+    // Token presente → registra autorização, captura a identidade e limpa a URL
     if (ssoToken) {
       sessionStorage.setItem('vpprd_sso_ok', '1');
+
+      // 1) Identidade imediata (síncrona): decodifica o payload do JWT
+      const payload = decodeJwtPayload(ssoToken);
+      const u = userFromAuthPayload(payload);
+      if (u) saveUser(u);
+
+      // 2) Validação assíncrona no Auth do vpsistema (confirma e enriquece;
+      //    best-effort — rede/expiração não derruba o acesso já autorizado)
+      fetch(VPSISTEMA_URL + '/auth/v1/user', {
+        headers: { apikey: VPSISTEMA_ANON, Authorization: 'Bearer ' + ssoToken },
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (auth) {
+          const confirmado = userFromAuthPayload(auth);
+          if (confirmado) saveUser(confirmado);
+        })
+        .catch(function () { /* offline/expirado: mantém o decode local */ });
+
       window.history.replaceState({}, '', window.location.pathname);
     }
   }());

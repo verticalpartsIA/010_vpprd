@@ -56,6 +56,13 @@ const ROLE_MAP = {
 
 function Sidebar({ route, setRoute, role, collapsed, onToggle }) {
   const filterVisible = (item) => !item.restrict || item.restrict.includes(role);
+  /* Re-renderiza quando a identidade SSO (vpsistema) chega/é confirmada */
+  const [, forceUser] = React.useState(0);
+  React.useEffect(() => {
+    const on = () => forceUser((n) => n + 1);
+    window.addEventListener('vpprd:user', on);
+    return () => window.removeEventListener('vpprd:user', on);
+  }, []);
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -95,10 +102,12 @@ function Sidebar({ route, setRoute, role, collapsed, onToggle }) {
       </div>
       <div className="sidebar__foot">
         <div className="sidebar__user">
-          <div className="avatar">{(ROLE_MAP[role] || {}).initials || "VP"}</div>
+          <div className="avatar">{(window.__VP_USER || {}).iniciais || (ROLE_MAP[role] || {}).initials || "VP"}</div>
           <div className="sidebar__user-info">
-            <div className="sidebar__user-name">{(ROLE_MAP[role] || {}).name || "VP Gestão"}</div>
-            <div className="sidebar__user-role">{(ROLE_MAP[role] || {}).title || "Sistema"}</div>
+            <div className="sidebar__user-name">{(window.__VP_USER || {}).nome || (ROLE_MAP[role] || {}).name || "VP Gestão"}</div>
+            <div className="sidebar__user-role" title={(window.__VP_USER || {}).email || ""}>
+              {(window.__VP_USER || {}).email || (ROLE_MAP[role] || {}).title || "Sistema"}
+            </div>
           </div>
           <span className="chev" style={{ color: "var(--vp-gray-500)" }}><Icon.chevUp size={14}/></span>
         </div>
