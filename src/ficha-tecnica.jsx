@@ -550,9 +550,22 @@ function FtGenerator({ initial, onSaved, onCancel }) {
     if (!podeGerar || saving) return;
     setSaving(true);
     try {
-      const rec = initial && initial.__id
+      const editando = !!(initial && initial.__id);
+      const rec = editando
         ? await window.FTStore.update(initial.__id, state)
         : await window.FTStore.createDraft(state);
+      /* Histórico do funil (quem criou/editou, quando) — best-effort */
+      if (window.FWFStore && rec) {
+        const ator = window.FWFStore.atorAtual();
+        window.FWFStore.registrar({
+          ficha_id: rec.id || (initial && initial.__id) || state.__id,
+          produto_id: rec.produto_id || null,
+          ator_nome: ator.nome, ator_setor: ator.setor,
+          acao: editando ? 'editou' : 'criou',
+          de_etapa: rec.etapa || null, para_etapa: rec.etapa || null,
+          detalhe: { nome_produto: state.identificacao.nomeProduto },
+        }).catch(() => {});
+      }
       onSaved && onSaved(rec);
     } catch (e) {
       alert('Erro ao salvar ficha: ' + (e.message || e));
@@ -793,6 +806,15 @@ function FichaTecnicaPage() {
       } finally {
         if (alive) setLibReady(true);
       }
+      /* Deep-link: lápis do Catálogo pediu pra abrir uma ficha direto no editor */
+      try {
+        const pendId = sessionStorage.getItem('vpprd_ft_open');
+        if (pendId && alive) {
+          sessionStorage.removeItem('vpprd_ft_open');
+          const ficha = await window.FTStore.getById(pendId);
+          if (ficha && alive) handleOpen(ficha);
+        }
+      } catch (e) { console.warn('[FTPage] deep-link open failed', e); }
     })();
     return () => { alive = false; };
   }, []);

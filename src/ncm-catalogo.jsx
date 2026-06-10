@@ -278,18 +278,25 @@ function ModalOperadorEstrangeiro({ onClose, onSaved }) {
 }
 
 /* ---------- Painel de detalhe: Produto ---------- */
-function ProdutoDetail({ p, operadores, onAct }) {
+function ProdutoDetail({ p, operadores, onAct, ficha, onEdit, onWorkflowChanged }) {
   const fabs = (p.fabricantes || []).map(c => operadores.find(o => o.codigo === c)).filter(Boolean);
   return (
     <div className="prod-detail">
       <div className="prod-detail__head">
         <div className="row sb">
-          <span className="prod-detail__id mono">cód. {p.codigo} · v{p.versao}</span>
+          <span className="prod-detail__id mono">cód. {p.codigo} · v{p.versao}{p.arquivado ? <span className="fw-arq-badge">Arquivado</span> : null}</span>
           <SitBadge s={p.situacao}/>
         </div>
         <div className="prod-detail__title">{p.denominacao || "(Sem denominação)"}</div>
+        {window.FwIconBar && <window.FwIconBar
+          produto={p} ficha={ficha}
+          onEdit={onEdit}
+          onDelete={() => onAct(p, null, true)}
+          onChanged={onWorkflowChanged}/>}
       </div>
       <div className="prod-detail__body">
+        {window.FwWorkflowCard && ficha !== undefined &&
+          <window.FwWorkflowCard ficha={ficha} onChanged={onWorkflowChanged}/>}
         <div className="stack">
           <KvBlock label="NCM" value={p.ncm || "—"} mono/>
           <KvBlock label="Descrição da NCM" value={p.ncm_descricao || "—"}/>
@@ -324,8 +331,7 @@ function ProdutoDetail({ p, operadores, onAct }) {
             </>}
             {p.situacao === "desativado" &&
               <Button variant="primary" size="sm" icon="check" onClick={() => onAct(p, { situacao:"ativado", versao:(p.versao||1)+1 })}>Reativar (nova versão)</Button>}
-            {/* Excluir disponível em qualquer status — cascata pra fichas_tecnicas vinculada */}
-            <Button variant="outline" size="sm" icon="trash" onClick={() => onAct(p, null, true)}>Excluir</Button>
+            {/* Excluir migrou para a lixeira na barra de ícones do cabeçalho */}
           </div>
         </div>
       </div>
@@ -385,6 +391,8 @@ function NcmCatalogoPage({ setRoute }) {
   const [sel, setSel] = React.useState(() => new Set());
   const [showBuilder, setShowBuilder] = React.useState(false);
   const [previewPedido, setPreviewPedido] = React.useState(null);
+  const [fichaSel, setFichaSel] = React.useState(null);      // ficha vinculada ao produto selecionado
+  const [mostrarArq, setMostrarArq] = React.useState(false); // exibir arquivados?
 
   const reload = React.useCallback(() => {
     setLoading(true);
@@ -398,6 +406,23 @@ function NcmCatalogoPage({ setRoute }) {
     });
   }, []);
   React.useEffect(() => { reload(); }, [reload]);
+
+  /* Ficha técnica vinculada ao produto selecionado (workflow do funil) */
+  React.useEffect(() => {
+    let alive = true;
+    if (!selProd || !window.FWFStore) { setFichaSel(null); return; }
+    window.FWFStore.getFichaByProduto(selProd).then((f) => { if (alive) setFichaSel(f); });
+    return () => { alive = false; };
+  }, [selProd, produtos]);
+
+  /* Lápis: abre a ficha técnica vinculada direto no editor */
+  const editarFicha = () => {
+    if (!fichaSel) return window.toast("Produto sem ficha técnica vinculada.", "warning");
+    try { sessionStorage.setItem("vpprd_ft_open", fichaSel.id); } catch (e) {}
+    setRoute && setRoute("ficha-tecnica");
+  };
+
+  const workflowChanged = (f) => { if (f && f.id) setFichaSel(f); reload(); };
 
   const actProd = async (row, patch, del) => {
     if (del) {
@@ -447,7 +472,9 @@ function NcmCatalogoPage({ setRoute }) {
   const sitFilters = ["Todos", "ativado", "rascunho", "desativado"];
   const matchSearch = (txt) => !search || txt.toLowerCase().includes(search.toLowerCase());
 
+  const nArquivados = produtos.filter(p => p.arquivado).length;
   const prodRows = produtos.filter(p =>
+    (mostrarArq || !p.arquivado) &&
     (filter === "Todos" || p.situacao === filter) &&
     matchSearch((p.denominacao || "") + (p.ncm || "") + (p.codigo || "") + (p.codigo_interno || "")));
   const opRows = operadores.filter(o =>
@@ -503,6 +530,12 @@ function NcmCatalogoPage({ setRoute }) {
           ))}
         </div>
         <div className="spacer"/>
+        {tab === "produtos" && nArquivados > 0 && (
+          <label className="small muted" style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", marginRight:10 }}>
+            <input type="checkbox" className="pf-chk" checked={mostrarArq} onChange={(e) => setMostrarArq(e.target.checked)}/>
+            Mostrar arquivados ({nArquivados})
+          </label>
+        )}
         <div className="search">
           <Icon.search size={12} color="var(--fg3)"/>
           <input placeholder={tab === "produtos" ? "Buscar produto, NCM, código…" : "Buscar operador, país…"} value={search} onChange={(e) => setSearch(e.target.value)}/>
@@ -539,6 +572,7 @@ function NcmCatalogoPage({ setRoute }) {
                 )}
                 {prodRows.map(p => (
                   <tr key={p.id} onClick={() => setSelProd(p.id)}
+                    className={p.arquivado ? "fw-row-arquivado" : undefined}
                     style={p.id === selProd ? { background:"#FFFBE6", boxShadow:"inset 3px 0 0 0 var(--vp-yellow)" } : null}>
                     <td onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" className="pf-chk" checked={sel.has(p.id)}
@@ -581,7 +615,8 @@ function NcmCatalogoPage({ setRoute }) {
 
         {tab === "produtos"
           ? (selectedProd
-              ? <ProdutoDetail p={selectedProd} operadores={operadores} onAct={actProd}/>
+              ? <ProdutoDetail p={selectedProd} operadores={operadores} onAct={actProd}
+                  ficha={fichaSel} onEdit={editarFicha} onWorkflowChanged={workflowChanged}/>
               : <div style={{ display:"flex", alignItems:"center", justifyContent:"center", border:"1px dashed var(--border)", color:"var(--fg3)", fontSize:13, padding:"60px 20px", textAlign:"center" }}>Selecione um produto para ver os detalhes.</div>)
           : (selectedOp
               ? <OperadorDetail o={selectedOp} onAct={actOp}/>
