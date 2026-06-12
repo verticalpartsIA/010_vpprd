@@ -34,13 +34,23 @@
     return pdf.output('datauristring').split('base64,')[1];
   }
 
+  let busy = false; // trava cliques duplos — o Omie rejeita chamadas repetidas (<60s)
+
   async function publicarNoOmie(fichaId, nomeProduto, atorNome, atorSetor) {
+    if (busy) { window.toast?.('Aguarde — publicação em andamento…', 'info'); return; }
     const c = sb();
     if (!c) { window.toast?.('Supabase indisponível', 'error'); throw new Error('Supabase indisponível'); }
     if (!fichaId) {
       window.toast?.('Salve a ficha antes de publicar no Omie', 'error');
       throw new Error('Ficha ainda não salva');
     }
+    busy = true;
+    try {
+      return await doPublicar(c, fichaId, atorNome, atorSetor);
+    } finally { busy = false; }
+  }
+
+  async function doPublicar(c, fichaId, atorNome, atorSetor) {
 
     window.toast?.('Gerando PDF da ficha…', 'info');
     const pdfBase64 = await gerarPdfBase64();

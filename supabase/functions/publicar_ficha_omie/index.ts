@@ -67,10 +67,18 @@ Deno.serve(async (req) => {
     const consulta = await omieCall("geral/produtos", "ConsultarProduto", { codigo: codigo_produto });
     if (!consulta.ok || !consulta.data.codigo_produto) {
       const fault = consulta.data?.faultstring || "";
-      return json({
-        error: `❌ Código ${codigo_produto} não existe no Omie — verifique o "Código do Produto (Omie)" da ficha.` +
-          (fault ? ` (Omie: ${fault})` : ""),
-      }, 404);
+      // Anti-duplicidade do Omie: chamada idêntica repetida em <60s
+      if (/redundante|REDUNDANT/i.test(fault)) {
+        const seg = fault.match(/(\d+)\s*segundos?/)?.[1] || "60";
+        return json({ error: `⏳ O Omie bloqueou chamadas repetidas — aguarde ${seg}s e clique de novo.` }, 429);
+      }
+      // Só é "não existe" quando o Omie diz isso (ou devolve vazio sem fault)
+      if (!fault || /n[aã]o\s+(cadastrado|encontrado|existe)/i.test(fault)) {
+        return json({
+          error: `❌ Código ${codigo_produto} não existe no Omie — verifique o "Código do Produto (Omie)" da ficha.`,
+        }, 404);
+      }
+      return json({ error: `Omie: ${fault}` }, 400);
     }
     const nIdProduto = consulta.data.codigo_produto; // id numérico interno do Omie
 
@@ -86,7 +94,13 @@ Deno.serve(async (req) => {
     });
     if (!anexo.ok) {
       const fault = anexo.data?.faultstring || "erro desconhecido";
-      // Anexo duplicado (mesmo cCodIntAnexo) é o caso mais comum
+      if (/redundante|REDUNDANT/i.test(fault)) {
+        const seg = fault.match(/(\d+)\s*segundos?/)?.[1] || "60";
+        return json({ error: `⏳ O Omie bloqueou chamadas repetidas — aguarde ${seg}s e clique de novo.` }, 429);
+      }
+      if (/j[aá]\s+(cadastrado|existe)|duplicado/i.test(fault)) {
+        return json({ error: `📎 Esta ficha já está anexada ao produto ${codigo_produto} no Omie.` }, 409);
+      }
       return json({ error: `Falha ao anexar no Omie: ${fault}` }, 400);
     }
 
