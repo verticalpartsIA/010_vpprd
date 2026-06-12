@@ -622,16 +622,18 @@ function FtGenerator({ initial, onSaved, onCancel }) {
         <button className={'ft-btn omie' + (podeGerar && state.identificacao.codigoProduto ? '' : ' off')}
           disabled={!podeGerar || !state.identificacao.codigoProduto}
           onClick={async () => {
-            if (!window.FichaOmiePublish) { window.toast?.('Sistema não carregado', 'error'); return; }
+            if (!window.FichaOmiePublish) { window.toast?.('Sistema não carregado — recarregue a página', 'error'); return; }
+            const fichaId = state.__id || (initial && initial.__id) || null;
+            if (!fichaId) { window.toast?.('Salve a ficha primeiro — depois publique no Omie', 'error'); return; }
             const user = window.__VP_USER || { nome: 'Usuário', setor: 'engenharia' };
             try {
               await window.FichaOmiePublish.publicarNoOmie(
-                ficha?.id,
+                fichaId,
                 state.identificacao.nomeProduto,
                 user.nome,
                 user.setor
               );
-            } catch (e) { /* erro já foi notificado */ }
+            } catch (e) { console.error('[Omie publish]', e); }
           }}
           title={(() => {
             if (!state.identificacao.nomeProduto) return '⚠️ Preencha o Nome do Produto';
