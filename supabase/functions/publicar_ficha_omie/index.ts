@@ -50,8 +50,33 @@ serve(async (req) => {
       );
     }
 
-    // 2. Chamar API Omie para anexar arquivo
-    // Endpoint: POST /api/v1/produtos/arquivo/anexar
+    // 2. Validar se o produto existe no Omie
+    const validacaoPayload = {
+      app_key: omieKey,
+      app_secret: omieSecret,
+      codigo_produto,
+    };
+
+    const validacaoResponse = await fetch(`${omieUrl}/produtos/consultar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(validacaoPayload),
+    });
+
+    const validacaoResult = await validacaoResponse.json();
+
+    // Se não encontrou o produto
+    if (!validacaoResponse.ok || validacaoResult.erro || !validacaoResult.id_produto) {
+      console.error("Produto não encontrado no Omie:", validacaoResult);
+      return new Response(
+        JSON.stringify({
+          error: `❌ Código ${codigo_produto} não existe no Omie. Verifique o "Código do Produto (Omie)" preenchido na ficha.`,
+        }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // 3. Chamar API Omie para anexar arquivo
     const nomeArquivo = `FICHA-TECNICA-${codigo_produto.replace(/[^A-Z0-9-]/g, "")}.pdf`;
 
     const omiePayload = {
