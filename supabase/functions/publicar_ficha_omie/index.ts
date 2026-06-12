@@ -6,8 +6,15 @@
    - ConsultarProduto  → valida que o código existe e obtém o nId
    - IncluirAnexo      → sobe o PDF na tabela "produtos"
    Erros do Omie voltam como { faultstring, faultcode }.
+
+   Requisitos do Omie para IncluirAnexo:
+   - cArquivo: arquivo comprimido em ZIP e convertido para base64
+   - cMd5: hash MD5 do arquivo original (hex)
+   - cCodIntAnexo: máx 20 caracteres
    ============================================================ */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { zipSync } from "https://esm.sh/fflate@0.8.2";
+import { createHash } from "node:crypto";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -24,6 +31,15 @@ const CORS = {
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: CORS });
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+  }
+  return btoa(binary);
 }
 
 async function omieCall(endpoint: string, call: string, param: Record<string, unknown>) {
@@ -67,12 +83,10 @@ Deno.serve(async (req) => {
     const consulta = await omieCall("geral/produtos", "ConsultarProduto", { codigo: codigo_produto });
     if (!consulta.ok || !consulta.data.codigo_produto) {
       const fault = consulta.data?.faultstring || "";
-      // Anti-duplicidade do Omie: chamada idêntica repetida em <60s
       if (/redundante|REDUNDANT/i.test(fault)) {
         const seg = fault.match(/(\d+)\s*segundos?/)?.[1] || "60";
         return json({ error: `⏳ O Omie bloqueou chamadas repetidas — aguarde ${seg}s e clique de novo.` }, 429);
       }
-      // Só é "não existe" quando o Omie diz isso (ou devolve vazio sem fault)
       if (!fault || /n[aã]o\s+(cadastrado|encontrado|existe)/i.test(fault)) {
         return json({
           error: `❌ Código ${codigo_produto} não existe no Omie — verifique o "Código do Produto (Omie)" da ficha.`,
@@ -80,17 +94,31 @@ Deno.serve(async (req) => {
       }
       return json({ error: `Omie: ${fault}` }, 400);
     }
-    const nIdProduto = consulta.data.codigo_produto; // id numérico interno do Omie
+    const nIdProduto = consulta.data.codigo_produto;
 
-    // 3) Anexar o PDF ao produto
+    // 3) Preparar arquivo: PDF → ZIP → base64 + MD5
     const nomeArquivo = `FICHA-TECNICA-${String(codigo_produto).replace(/[^A-Za-z0-9-]/g, "")}.pdf`;
+    const pdfBytes = Uint8Array.from(atob(pdf_base64), (c) => c.charCodeAt(0));
+
+    // Omie exige o arquivo comprimido em ZIP
+    const files: Record<string, Uint8Array> = {};
+    files[nomeArquivo] = pdfBytes;
+    const zipped = zipSync(files);
+    const zippedBase64 = toBase64(zipped);
+
+    // MD5 do PDF original (antes da compressão)
+    const md5Hash = createHash("md5").update(pdfBytes).digest("hex");
+
+    // 4) Anexar o PDF ao produto
+    // cCodIntAnexo: limite 20 chars → ft- (3) + 17 chars do UUID sem hífens
     const anexo = await omieCall("geral/anexo", "IncluirAnexo", {
       cTabela: "produtos",
       nId: nIdProduto,
-      cCodIntAnexo: `ft-${String(ficha_id).replace(/-/g, '').slice(0, 17)}`,
+      cCodIntAnexo: `ft-${String(ficha_id).replace(/-/g, "").slice(0, 17)}`,
       cNomeArquivo: nomeArquivo,
       cTipoArquivo: "pdf",
-      cArquivo: pdf_base64,
+      cArquivo: zippedBase64,
+      cMd5: md5Hash,
     });
     if (!anexo.ok) {
       const fault = anexo.data?.faultstring || "erro desconhecido";
@@ -104,7 +132,7 @@ Deno.serve(async (req) => {
       return json({ error: `Falha ao anexar no Omie: ${fault}` }, 400);
     }
 
-    // 4) Auditoria (best-effort)
+    // 5) Auditoria (best-effort)
     const { error: logError } = await sb.from("vp_logs").insert({
       ator_nome: ator_nome || "Sistema",
       ator_setor: ator_setor || "engenharia",
