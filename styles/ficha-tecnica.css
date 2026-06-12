@@ -77,6 +77,9 @@
 .ft-btn.dark.off, .ft-btn.dark:disabled { background: var(--ft-steel-200); color: var(--ft-steel); cursor: not-allowed; }
 .ft-btn.ghost { background: var(--ft-white); color: var(--ft-fg1); border-color: var(--ft-border-strong); }
 .ft-btn.ghost:hover { border-color: var(--ft-black); }
+.ft-btn.omie { background: #2563eb; color: #fff; }
+.ft-btn.omie:hover { background: #1d4ed8; }
+.ft-btn.omie.off, .ft-btn.omie:disabled { background: var(--ft-steel-200); color: var(--ft-steel); cursor: not-allowed; }
 
 /* Body de 3 colunas: sidebar | work | preview */
 .ft-gen-body {

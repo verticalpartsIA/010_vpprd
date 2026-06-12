@@ -613,6 +613,24 @@ function FtGenerator({ initial, onSaved, onCancel }) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
           Gerar PDF
         </button>
+        <button className={'ft-btn omie' + (podeGerar && state.identificacao.codigoProduto ? '' : ' off')}
+          disabled={!podeGerar || !state.identificacao.codigoProduto}
+          onClick={async () => {
+            if (!window.FichaOmiePublish) { window.toast?.('Sistema não carregado', 'error'); return; }
+            const user = window.__VP_USER || { nome: 'Usuário', setor: 'engenharia' };
+            try {
+              await window.FichaOmiePublish.publicarNoOmie(
+                ficha?.id,
+                state.identificacao.nomeProduto,
+                user.nome,
+                user.setor
+              );
+            } catch (e) { /* erro já foi notificado */ }
+          }}
+          title={state.identificacao.codigoProduto ? 'Publicar ficha como anexo no Omie' : 'Preencha o Código do Produto (Omie) primeiro'}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Publicar no Omie
+        </button>
       </div>
 
       <div className="ft-gen-body">
