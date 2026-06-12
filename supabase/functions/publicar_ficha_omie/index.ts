@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     // 4) Anexar o PDF ao produto
     // cCodIntAnexo: limite 20 chars → ft- (3) + 17 chars do UUID sem hífens
     const anexo = await omieCall("geral/anexo", "IncluirAnexo", {
-      cTabela: "produtos",
+      cTabela: "produto",
       nId: nIdProduto,
       cCodIntAnexo: `ft-${String(ficha_id).replace(/-/g, "").slice(0, 17)}`,
       cNomeArquivo: nomeArquivo,
