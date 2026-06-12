@@ -619,8 +619,8 @@ function FtGenerator({ initial, onSaved, onCancel }) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
           Gerar PDF
         </button>
-        <button className={'ft-btn omie' + (podeGerar && state.identificacao.codigoProduto ? '' : ' off')}
-          disabled={!podeGerar || !state.identificacao.codigoProduto}
+        <button className={'ft-btn omie' + (state.identificacao.codigoProduto ? '' : ' off')}
+          disabled={!state.identificacao.codigoProduto}
           onClick={async () => {
             if (!window.FichaOmiePublish) { window.toast?.('Sistema não carregado — recarregue a página', 'error'); return; }
             const fichaId = state.__id || (initial && initial.__id) || null;
