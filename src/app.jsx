@@ -52,19 +52,27 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(err, info) { this.setState({ error: err, info: info }); }
   render() {
     if (this.state.error) {
+      const isProd = window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('192.168');
       const stack = this.state.info && this.state.info.componentStack
-        ? this.state.info.componentStack.trim().split('\n').slice(0, 6).join('\n')
+        ? this.state.info.componentStack.trim().split('\n').slice(0, 8).join('\n')
         : '';
       return (
         <div style={{ padding: 40, fontFamily: 'monospace', maxWidth: 700, margin: '0 auto' }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, fontFamily: 'sans-serif' }}>Erro ao carregar o VP Gestão</div>
           <div style={{ fontSize: 12, color: '#c00', marginBottom: 16, wordBreak: 'break-all' }}>{String(this.state.error)}</div>
-          {stack ? (
-            <pre style={{ fontSize: 10, color: '#666', background: '#f5f5f5', padding: 12, borderRadius: 4, overflowX: 'auto', marginBottom: 20, whiteSpace: 'pre-wrap' }}>{stack}</pre>
+          {stack && !isProd ? (
+            <details style={{ marginBottom: 20 }}>
+              <summary style={{ fontSize: 11, color: '#666', cursor: 'pointer', marginBottom: 4 }}>Detalhes técnicos</summary>
+              <pre style={{ fontSize: 10, color: '#666', background: '#f5f5f5', padding: 12, borderRadius: 4, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>{stack}</pre>
+            </details>
           ) : null}
-          <button onClick={() => { localStorage.removeItem('vpprd.role'); localStorage.removeItem('vpprd.route'); window.location.reload(); }}
+          <button onClick={() => this.setState({ error: null, info: null })}
             style={{ padding: '8px 20px', background: '#f5c400', border: 'none', fontWeight: 700, cursor: 'pointer', marginRight: 8 }}>
+            Tentar novamente
+          </button>
+          <button onClick={() => { localStorage.removeItem('vpprd.role'); localStorage.removeItem('vpprd.route'); window.location.reload(); }}
+            style={{ padding: '8px 20px', background: '#eee', border: 'none', fontWeight: 600, cursor: 'pointer', marginRight: 8 }}>
             Limpar cache e recarregar
           </button>
           <button onClick={() => window.location.reload()}
@@ -281,13 +289,32 @@ function App() {
 const bootEl = document.getElementById('vp-boot');
 if (bootEl) bootEl.remove();
 
-// Timeout de emergência: se tudo ficar travado, força o app a renderizar
+// Timeout de emergência: se tudo ficar travado após 5s, mostra aviso.
+// Usa sessionStorage para contar tentativas e parar após 3 reloads consecutivos.
 setTimeout(() => {
   if (!document.getElementById('root').innerHTML) {
     const boot = document.getElementById('vp-boot');
     if (boot) boot.remove();
-    document.getElementById('root').innerHTML = '<div style="padding:40px;text-align:center;"><h1>⚠️ Timeout ao carregar</h1><p>O app está demorando. Recarregando...</p></div>';
-    setTimeout(() => { window.location.reload(); }, 2000);
+    const attempts = parseInt(sessionStorage.getItem('vpprd.boot_attempts') || '0', 10);
+    if (attempts < 3) {
+      sessionStorage.setItem('vpprd.boot_attempts', String(attempts + 1));
+      document.getElementById('root').innerHTML =
+        '<div style="padding:40px;text-align:center;"><h1>⚠️ Timeout ao carregar</h1>' +
+        '<p>O app está demorando. Recarregando... (tentativa ' + (attempts + 1) + '/3)</p></div>';
+      setTimeout(() => { window.location.reload(); }, 2000);
+    } else {
+      sessionStorage.removeItem('vpprd.boot_attempts');
+      document.getElementById('root').innerHTML =
+        '<div style="padding:40px;text-align:center;">' +
+        '<h1>⚠️ Falha ao carregar</h1>' +
+        '<p>O VP Gestão não conseguiu inicializar após 3 tentativas.</p>' +
+        '<p style="font-size:13px;color:#666;">Verifique a conexão com a internet e recarregue manualmente.</p>' +
+        '<button onclick="sessionStorage.clear();window.location.reload()" ' +
+        'style="margin-top:16px;padding:10px 24px;background:#f5c400;border:none;font-weight:700;cursor:pointer;">' +
+        'Tentar novamente</button></div>';
+    }
+  } else {
+    sessionStorage.removeItem('vpprd.boot_attempts');
   }
 }, 5000);
 

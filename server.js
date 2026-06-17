@@ -13,6 +13,31 @@ const path    = require('path');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+/* ---------- Security headers (helmet-equivalent, sem dependência extra) ---------- */
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '0');               // modern browsers ignore this; disable to avoid misconfiguration
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  next();
+});
+
+/* ---------- Rate limiter simples para rotas /api (sem dependência externa) ----------
+   Janela de 60 s · máx 90 req/ip. Limpa entradas expiradas a cada 5 min. */
+const _rl = new Map();
+setInterval(() => { const now = Date.now(); _rl.forEach((v, k) => { if (now > v.r) _rl.delete(k); }); }, 300_000).unref();
+function apiRateLimit(req, res, next) {
+  const ip  = req.ip || req.socket?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const e   = _rl.get(ip);
+  if (!e || now > e.r) { _rl.set(ip, { c: 1, r: now + 60_000 }); return next(); }
+  if (e.c >= 90) return res.status(429).json({ ok: false, error: 'Muitas requisições. Aguarde e tente novamente.' });
+  e.c++;
+  next();
+}
+app.use('/api', apiRateLimit);
+
 app.use(express.json({ limit: '4mb' }));
 
 /* ---------- Credenciais do projeto Propostas (service role) ----------
