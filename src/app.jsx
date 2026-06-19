@@ -175,6 +175,7 @@ function App() {
       case "art": return <ArtPage/>;
       case "cronograma": return <CronogramaPage/>;
       case "databook": return <DataBookPage/>;
+      case "handover": return <window.HandoverManutencaoPage/>;
       case "importacao": return <ImportacaoPage setRoute={setRoute} setSubsel={setSubsel}/>;
       case "importacao-detail": return <ImportacaoDetail embarque={subsel} setRoute={setRoute}/>;
       case "importacao-rastreamento": return <ImportacaoRastreamento setRoute={setRoute}/>;
@@ -261,6 +262,7 @@ function App() {
               { value: "art", label: "ART de Instalação" },
               { value: "cronograma", label: "Cronograma de Instalação" },
               { value: "databook", label: "Data Book & Termo" },
+              { value: "handover", label: "📦 Handover & Pós-venda" },
               { value: "importacao", label: "Importação (lista)" },
               { value: "importacao-detail", label: "Detalhe de Embarque" },
               { value: "importacao-rastreamento", label: "🛰️ Mapa de Navios" },
