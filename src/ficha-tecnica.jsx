@@ -777,8 +777,14 @@ function FtDashboard({ onNew, onOpen }) {
       .toLowerCase().includes(q);
   });
 
-  const handleDel = async (id) => {
-    if (!window.confirm('Excluir esta ficha? O produto vinculado no Catálogo também será removido.')) return;
+  const handleDel = async (id, nomeProduto) => {
+    const confirmacao = window.prompt(
+      `⚠️ ATENÇÃO: Você está prestes a excluir permanentemente a ficha e o produto "${nomeProduto}".\n\nDigite o nome EXATO do produto para confirmar:\n\n${nomeProduto}`
+    );
+    if (confirmacao !== nomeProduto) {
+      if (confirmacao !== null) window.alert('Nome incorreto. Exclusão cancelada.');
+      return;
+    }
     await window.FTStore.remove(id);
     refresh();
   };
@@ -827,7 +833,7 @@ function FtDashboard({ onNew, onOpen }) {
                   <td className="ft-cell-time">{window.FTStore.relative(f.criado_em)}</td>
                   <td style={{textAlign:'right'}}>
                     <button className="ft-mini-btn" onClick={() => onOpen(f)}>Abrir</button>
-                    <button className="ft-mini-btn ft-mini-btn--danger" onClick={() => handleDel(f.id)}>Excluir</button>
+                    <button className="ft-mini-btn ft-mini-btn--danger" onClick={() => handleDel(f.id, f.nome_produto)}>Excluir</button>
                   </td>
                 </tr>
               ))}
