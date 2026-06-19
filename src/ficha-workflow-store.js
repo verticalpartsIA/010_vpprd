@@ -127,6 +127,28 @@
   async function transicao(ficha, paraEtapa, ator, acao, detalhe) {
     const c = sb(); if (!c) throw new Error('Supabase indisponível');
     const deEtapa = ficha.etapa || 'comercial_rascunho';
+
+    /* Gate AND Logic: validar pré-requisitos antes de permitir "importacao" */
+    if (paraEtapa === 'importacao') {
+      const projectId = ficha.project_id; // Ajuste conforme seu modelo de dados
+      if (!projectId) {
+        throw new Error('Projeto não identificado. Não é possível validar os pré-requisitos de importação.');
+      }
+      if (window.ProjectGates && window.ProjectGates.validarGatesImportacao) {
+        const gatesResult = await window.ProjectGates.validarGatesImportacao(projectId);
+        if (!gatesResult.ok) {
+          const msgs = window.ProjectGates.mensagemBlockedBy(gatesResult.blockedBy);
+          const bloqueadores = gatesResult.gates
+            .filter((g) => !g.ok)
+            .map((g) => `• ${g.descricao}`)
+            .join('\n');
+          throw new Error(
+            `❌ Não é possível iniciar a importação. Pré-requisitos pendentes:\n\n${bloqueadores}`
+          );
+        }
+      }
+    }
+
     const setorResp = window.FWF.setorResponsavel(paraEtapa);
     const patch = {
       etapa: paraEtapa,
