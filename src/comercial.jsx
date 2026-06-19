@@ -451,6 +451,8 @@ function LeadsPage({ setRoute, setSubsel }) {
 
 /* ---------- LEAD DETAIL ---------- */
 function LeadDetail({ lead, setRoute }) {
+  const [creatingDossier, setCreatingDossier] = React.useState(false);
+
   if (!lead) {
     return <EmptyStateRedirect
       icon="flag"
@@ -466,6 +468,22 @@ function LeadDetail({ lead, setRoute }) {
     { t: "Visita técnica agendada — 15/mai 14h", date: "12/mai 15:00", who: "Engenharia", icon: "calendar" },
     { t: "Email follow-up enviado com prévia da proposta", date: "13/mai 08:30", who: "Comercial", icon: "mail" },
   ];
+
+  const criarDossier = async () => {
+    if (lead.status !== "Em qualificação" && lead.status !== "Aguardando cotação") {
+      return window.toast('Lead já está avançado. Crie Dossier manualmente.', 'warning');
+    }
+    setCreatingDossier(true);
+    try {
+      const dossier = await window.__DOSSIER.criarDeDossier(lead);
+      window.toast('Dossier criado com sucesso! ID: ' + dossier.id, 'success');
+      setRoute('dossier-obra');
+    } catch (e) {
+      window.toast('Erro: ' + e.message, 'error');
+    } finally {
+      setCreatingDossier(false);
+    }
+  };
 
   return (
     <div className="page fade-in">
@@ -488,7 +506,9 @@ function LeadDetail({ lead, setRoute }) {
         <div className="page-head__r">
           <Button variant="outline" icon="message" onClick={() => { const p = (lead.phone || '').replace(/\D/g,''); p ? window.open('https://wa.me/55'+p,'_blank') : window.toast('Telefone não cadastrado.','warning'); }}>WhatsApp</Button>
           <Button variant="outline" icon="mail" onClick={() => { lead.email ? window.open('mailto:'+lead.email) : window.toast('Email não cadastrado.','warning'); }}>Email</Button>
-          <Button variant="primary" icon="calculator" onClick={() => setRoute("precificacao")}>Precificar</Button>
+          <Button variant="primary" icon="zap" onClick={criarDossier} disabled={creatingDossier}>
+            {creatingDossier ? 'Criando…' : 'Qualificar → Dossier'}
+          </Button>
         </div>
       </div>
 
