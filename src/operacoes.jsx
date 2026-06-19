@@ -158,6 +158,7 @@ function EngenhariaPage({ setRoute }) {
   const [engTab, setEngTab] = React.useState("laudo");
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [showNovoProjeto, setShowNovoProjeto] = React.useState(false);
+  const [gates, setGates] = React.useState(null);
   // Stable photo IDs so they don't shuffle on re-render
   const photoIds = React.useMemo(() => ([3142, 5891, 7204, 2057, 4396, 6128]), []);
 
@@ -166,6 +167,14 @@ function EngenhariaPage({ setRoute }) {
     window.__VP_SB.sb.from('projetos').select('*')
       .then(({ data }) => { setProjetos(data || []); setLoading(false); });
   };
+
+  const validarGatesProjeto = async (projectId) => {
+    if (window.ProjectGates && window.ProjectGates.validarGatesImportacao) {
+      const result = await window.ProjectGates.validarGatesImportacao(projectId);
+      setGates(result);
+    }
+  };
+
   React.useEffect(() => { reloadProjetos(); }, []);
 
   if (loading) return <div style={{ textAlign:'center', padding:'60px 0', color:'var(--fg3)', fontSize:13 }}>Carregando…</div>;
@@ -200,7 +209,7 @@ function EngenhariaPage({ setRoute }) {
             )}
             {projetos.map((p) => (
               <div key={p.id} style={{ background: selectedProject?.id === p.id ? "var(--vp-gray-50)" : "#fff", border: "1px solid " + (selectedProject?.id === p.id ? "#000" : "var(--border)"), padding: 14, cursor: "pointer", position: "relative" }}
-                onClick={() => setSelectedProject(p)}>
+                onClick={() => { setSelectedProject(p); validarGatesProjeto(p.id); setGates(null); }}>
                 <span style={{ position: "absolute", top: 0, left: 0, width: 24, height: 3, background: "var(--vp-yellow)" }}/>
                 <div className="row sb">
                   <div>
@@ -245,10 +254,49 @@ function EngenhariaPage({ setRoute }) {
               { key: "bom", label: "BOM", icon: "list" },
               { key: "visita", label: "Visita", icon: "calendar" },
               { key: "ncm", label: "NCM / Ficha Técnica", icon: "package" },
+              { key: "gates", label: "Gatilhos Importação", icon: "zap" },
             ]} active={engTab} onChange={setEngTab}/>
-            <div style={{ textAlign:'center', padding:'40px 0', color:'var(--fg3)', fontSize:13 }}>
-              Conteúdo do projeto {selectedProject.id} será carregado aqui. {/* TODO: tabela de itens e laudos — fase futura */}
-            </div>
+
+            {engTab === "gates" && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ background: "#fef3c7", border: "1px solid #fbbf24", borderRadius: 6, padding: 16 }}>
+                  <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#92400e" }}>🔓 Gatilhos para Iniciar Importação (120 dias)</h3>
+                  {gates === null ? (
+                    <div style={{ textAlign: "center", padding: "20px 0", color: "#666", fontSize: 13 }}>Carregando validação…</div>
+                  ) : gates.erro ? (
+                    <div style={{ color: "#dc2626", fontSize: 13 }}>❌ Erro ao validar: {gates.detalhe}</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {gates.gates.map((g, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: "#fff", borderRadius: 4, border: "1px solid " + (g.ok ? "#10b981" : "#fbbf24") }}>
+                          <span style={{ fontSize: 16 }}>{g.ok ? "✅" : "⏳"}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13 }}>{g.nome}</div>
+                            <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{g.descricao}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {gates.ok && (
+                        <div style={{ marginTop: 12, padding: 12, background: "#dcfce7", border: "1px solid #86efac", borderRadius: 4, color: "#166534", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
+                          ✅ TODOS OS PRÉ-REQUISITOS OK — Importação pode ser iniciada!
+                        </div>
+                      )}
+                      {!gates.ok && (
+                        <div style={{ marginTop: 12, padding: 12, background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 4, color: "#991b1b", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
+                          ⏳ Aguarde todos os pré-requisitos antes de iniciar importação
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {engTab !== "gates" && (
+              <div style={{ textAlign:'center', padding:'40px 0', color:'var(--fg3)', fontSize:13 }}>
+                Conteúdo do projeto {selectedProject.id} será carregado aqui. {/* TODO: tabela de itens e laudos — fase futura */}
+              </div>
+            )}
           </Card>
         ) : (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', border:'1px dashed var(--border)', color:'var(--fg3)', fontSize:13, padding:'60px 20px', textAlign:'center' }}>
