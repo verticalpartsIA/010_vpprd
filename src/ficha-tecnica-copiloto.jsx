@@ -153,6 +153,7 @@ function FtCopiloto({ state, setState }) {
         eh_parte_de: state.eh_parte_de || '',
         forma_estado: state.forma_estado || '',
         categoria: ident.categoriaProduto || null,
+        descricao_comercial: ident.descricaoComercial || null,
         descricao_tecnica_manual: ident.descricaoTecnica || null,
         atributos: (state.cats || []).reduce((acc, cat) => {
           (cat.campos || []).forEach((fld) => {
