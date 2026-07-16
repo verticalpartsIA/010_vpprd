@@ -313,12 +313,21 @@
     return new Date(d0Timestamp).toISOString().split('T')[0];  // retorna YYYY-MM-DD
   }
 
+  /* ISSUE #6: prazo de entrega = D0 + N dias (contrato cita 120 a 150 — usamos
+     120, o mínimo contratual, como data prevista de referência). */
+  function addDias(dataISO, dias) {
+    if (!dataISO) return null;
+    const d = new Date(dataISO + 'T00:00:00');
+    d.setDate(d.getDate() + dias);
+    return d.toISOString().split('T')[0];
+  }
+
   /* ---------- Exporta tudo em window.CV ---------- */
   window.CV = {
     VENDEDORA, EQUIPAMENTOS,
     onlyDigits, maskCNPJ, maskCPF, maskPhone, maskCEP, maskMoney, parseMoney, brl, dataBR,
     descEquipamento, defaultState,
     buildContract,
-    calcularD0,  // ISSUE #6
+    calcularD0, addDias,  // ISSUE #6
   };
 }());

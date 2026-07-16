@@ -315,10 +315,20 @@
     };
     const log = (cur.log || []).slice();
     log.push({ status:'assinado', at: now.toISOString(), meta:{ ip, ua, hash } });
+
+    // ISSUE #6: assinatura é um dos 3 marcos do D0 — preenche sozinho aqui
+    // (evento real), sem precisar de entrada manual, e recalcula D0/entrega.
+    const formState = { ...(cur.form_state || {}) };
+    if (!formState.d0_assinatura) formState.d0_assinatura = now.toISOString().slice(0, 10);
+    const d0 = window.CV.calcularD0(formState.d0_entrada, formState.d0_assinatura, formState.d0_projeto);
+    formState.d0 = d0;
+    formState.entrega_prevista = d0 ? window.CV.addDias(d0, 120) : null;
+
     const patch = {
       status: 'assinado',
       signed_at: now.toISOString(),
       audit, log,
+      form_state: formState,
       atualizado_em: now.toISOString(),
     };
     await c.from('contratos_venda_equipamentos').update(patch).eq('token', token);
