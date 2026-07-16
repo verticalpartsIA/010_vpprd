@@ -574,6 +574,60 @@ function CVAuditRow({ k, v }) {
   return <div className="ci-audit-row"><span className="k">{k}</span><span className="v">{v || '—'}</span></div>;
 }
 
+/* ISSUE #6: marcos do D0 — pagamento da entrada, assinatura do contrato e
+   projeto aprovado pela Engenharia. D0 é o mais recente dos 3; a entrega
+   prevista é D0 + 120 dias. Assinatura vem do evento real (signed_at),
+   não é editável aqui — só entrada e projeto, que ainda não têm um fluxo
+   próprio de captura automática. */
+function CVD0Section({ rec, onSaved }) {
+  const fs = rec.form_state || {};
+  const [d0Entrada, setD0Entrada] = _cvUS(fs.d0_entrada || '');
+  const [d0Projeto, setD0Projeto] = _cvUS(fs.d0_projeto || '');
+  const [saving, setSaving] = _cvUS(false);
+  const dirty = d0Entrada !== (fs.d0_entrada || '') || d0Projeto !== (fs.d0_projeto || '');
+
+  const d0Assinatura = rec.signed_at ? rec.signed_at.slice(0, 10) : (fs.d0_assinatura || '');
+  const d0 = window.CV.calcularD0(d0Entrada, d0Assinatura, d0Projeto);
+  const entregaPrevista = d0 ? window.CV.addDias(d0, 120) : null;
+
+  const salvar = async () => {
+    setSaving(true);
+    try {
+      const novo = await window.CVStore.updateFormState(rec.id, {
+        ...fs, d0_entrada: d0Entrada, d0_projeto: d0Projeto, d0_assinatura: d0Assinatura, d0, entrega_prevista: entregaPrevista,
+      });
+      onSaved && onSaved(novo);
+    } catch (e) {
+      alert('Erro ao salvar marcos do D0: ' + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="ci-drawer-sec">
+      <h3 className="ci-drawer-sec-title">Cronograma · D0</h3>
+      <p className="cv-field-hint" style={{ marginBottom: 10, display: 'block' }}>
+        D0 é a data do marco mais recente entre os 3 abaixo; a entrega prevista é D0 + 120 dias (cláusula 2.5).
+      </p>
+      <div className="cv-grid">
+        <CVField label="Pagamento da entrada" type="date" value={d0Entrada} onChange={setD0Entrada}/>
+        <CVField label="Projeto aprovado (Engenharia)" type="date" value={d0Projeto} onChange={setD0Projeto}/>
+      </div>
+      <div className="ci-audit" style={{ marginTop: 12 }}>
+        <CVAuditRow k="Assinatura do contrato" v={d0Assinatura ? window.CVStore.fmtDate(d0Assinatura) : 'aguardando assinatura (preenchido sozinho quando o cliente assinar)'}/>
+        <CVAuditRow k="D0 (marco mais recente)" v={d0 ? window.CVStore.fmtDate(d0) : 'aguardando os 3 marcos'}/>
+        <CVAuditRow k="Entrega prevista (D0 + 120 dias)" v={entregaPrevista ? window.CVStore.fmtDate(entregaPrevista) : '—'}/>
+      </div>
+      {dirty && (
+        <button className="ci-btn ci-btn--primary" onClick={salvar} disabled={saving} style={{ marginTop: 10 }}>
+          {saving ? 'Salvando…' : 'Salvar marcos'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function CVAuditDrawer({ rec, onClose, onResend, onRefresh }) {
   const a = rec.audit || {};
   const del = async () => {
@@ -627,6 +681,7 @@ function CVAuditDrawer({ rec, onClose, onResend, onRefresh }) {
               </div>
             )}
           </div>
+          <CVD0Section rec={rec} onSaved={onRefresh}/>
           <div className="ci-drawer-sec">
             <h3 className="ci-drawer-sec-title">Ações</h3>
             <div className="ci-drawer-actions">
