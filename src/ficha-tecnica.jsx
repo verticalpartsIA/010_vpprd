@@ -168,7 +168,10 @@ function FtFicha({ state }) {
       <div className="ft-fz-footer">
         <div className="fb">VERTICAL<span>PARTS</span></div>
         <div className="fc">{id.categoriaProduto || 'Ficha Técnica'}</div>
-        <div className="fc">{window.FT.hoje()} · www.verticalparts.com.br</div>
+        <div className="fc">
+          {window.FT.hoje()} · www.verticalparts.com.br
+          {window.__VP_USER?.email && <span className="ft-fz-autor"> · Criado por {window.__VP_USER.email}</span>}
+        </div>
       </div>
     </div>
   );
@@ -742,7 +745,13 @@ function FtGenerator({ initial, onSaved, onCancel }) {
                   // precisa desse fator pra converter uma coordenada pra outra,
                   // não o pxPerMm (esse é canvas-px por mm, unidade diferente).
                   const cssToCanvas = canvas.width / fichaBox.width;
-                  const atoms = Array.from(fichaEl.querySelectorAll('.ft-fz-grp, .ft-fz-descterm, .ft-fz-ident'))
+                  // Inclui o rodapé (.ft-fz-footer) na lista de blocos protegidos —
+                  // sem ele aqui, o trecho depois do último grupo (só o rodapé)
+                  // caía num "resto" não coberto por nenhum bloco, fatiado às
+                  // cegas mais abaixo — e por arredondamento essa fatia podia sair
+                  // com altura zero/negativa e ser descartada inteira, levando
+                  // junto o conteúdo que estava logo antes dela (ex.: NCM).
+                  const atoms = Array.from(fichaEl.querySelectorAll('.ft-fz-grp, .ft-fz-descterm, .ft-fz-ident, .ft-fz-footer'))
                     .map((el) => {
                       const r = el.getBoundingClientRect();
                       return {
@@ -753,33 +762,38 @@ function FtGenerator({ initial, onSaved, onCancel }) {
                     .filter((a) => a.bottom > 0)
                     .sort((a, b) => a.top - b.top);
 
-                  // decide onde cada página termina: percorre os blocos em ordem;
-                  // se um bloco não cabe no que resta da página atual, a página
-                  // fecha bem no topo dele (o bloco inteiro vai pra próxima) —
-                  // exceto quando o bloco sozinho já é maior que 1 página, caso em
-                  // que não tem como evitar e ele mesmo é fatiado normalmente.
-                  const cuts = [0];
+                  // decide onde cada página termina andando bloco a bloco, em uma
+                  // única passada: se um bloco não cabe no que resta da página
+                  // atual, ela fecha bem no topo dele (o bloco inteiro vai pra
+                  // próxima) — nunca "às cegas" fora dos limites de um bloco, só
+                  // quando o bloco sozinho já é maior que 1 página inteira (raro),
+                  // caso em que ele mesmo é fatiado em pedaços fixos até esgotar.
+                  const finalCuts = [0];
                   let pageStart = 0;
                   for (const atom of atoms) {
-                    if (atom.top < pageStart) continue;
-                    if (atom.bottom - pageStart > pageHeightPx && atom.top > pageStart) {
-                      cuts.push(atom.top);
-                      pageStart = atom.top;
+                    if (atom.bottom <= pageStart) continue;
+                    if (atom.bottom - pageStart > pageHeightPx) {
+                      if (atom.top > pageStart) {
+                        finalCuts.push(atom.top);
+                        pageStart = atom.top;
+                      }
+                      while (atom.bottom - pageStart > pageHeightPx) {
+                        pageStart += pageHeightPx;
+                        finalCuts.push(pageStart);
+                      }
                     }
                   }
-                  cuts.push(canvas.height);
+                  finalCuts.push(canvas.height);
 
-                  // uma página nunca deve ficar maior que pageHeightPx (ex.: bloco
-                  // maior que a página) — nesse caso ela é fatiada em pedaços fixos
-                  const finalCuts = [0];
-                  for (let i = 1; i < cuts.length; i++) {
-                    let from = cuts[i - 1];
-                    const to = cuts[i];
-                    while (to - from > pageHeightPx) {
-                      from += pageHeightPx;
-                      finalCuts.push(from);
+                  // Se a última página sobrar bem curta (ex.: só o rodapé sozinho,
+                  // sem nenhum grupo de specs), funde com a página anterior em vez
+                  // de desperdiçar 1 página quase em branco — a fatia combinada é
+                  // encolhida (mantendo proporção) só o suficiente pra caber.
+                  if (finalCuts.length > 2) {
+                    const lastH = finalCuts[finalCuts.length - 1] - finalCuts[finalCuts.length - 2];
+                    if (lastH < pageHeightPx * 0.25) {
+                      finalCuts.splice(finalCuts.length - 2, 1);
                     }
-                    finalCuts.push(to);
                   }
 
                   let first = true;
@@ -798,7 +812,14 @@ function FtGenerator({ initial, onSaved, onCancel }) {
                     const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.97);
                     if (!first) pdf.addPage();
                     first = false;
-                    pdf.addImage(sliceData, 'JPEG', 0, 0, pw, sliceH / pxPerMm, undefined, 'FAST');
+                    // encolhe proporcionalmente só se a fusão acima deixou a fatia
+                    // mais alta que 1 página — nas demais páginas (o caso normal),
+                    // naturalH já é <= ph e isso não muda nada.
+                    const naturalH = sliceH / pxPerMm;
+                    const drawH = Math.min(ph, naturalH);
+                    const drawW = pw * (drawH / naturalH);
+                    const offsetX = (pw - drawW) / 2;
+                    pdf.addImage(sliceData, 'JPEG', offsetX, 0, drawW, drawH, undefined, 'FAST');
                   }
                   pdf.save(`Ficha-${safeName}.pdf`);
                 } catch (err) {
