@@ -7,11 +7,14 @@ const _ToastCtx = { listeners: [], counter: 0 };
 
 window.toast = function(message, variant = "info", opts = {}) {
   const id = ++_ToastCtx.counter;
-  const payload = { id, message, variant, duration: opts.duration ?? 3200 };
+  const duration = opts.duration ?? 3200;
+  const payload = { id, message, variant, duration, description: opts.description, action: opts.action };
   _ToastCtx.listeners.forEach(fn => fn({ type: "add", payload }));
-  setTimeout(() => {
-    _ToastCtx.listeners.forEach(fn => fn({ type: "remove", id }));
-  }, payload.duration);
+  if (duration !== Infinity) {
+    setTimeout(() => {
+      _ToastCtx.listeners.forEach(fn => fn({ type: "remove", id }));
+    }, duration);
+  }
   return id;
 };
 
@@ -40,7 +43,16 @@ function ToastViewport() {
              t.variant === "danger"  ? <Icon.warning size={14}/> :
              <Icon.info size={14}/>}
           </span>
-          <span className="toast__msg">{t.message}</span>
+          <span className="toast__body">
+            <span className="toast__msg">{t.message}</span>
+            {t.description ? <span className="toast__desc">{t.description}</span> : null}
+          </span>
+          {t.action ? (
+            <button className="toast__action" onClick={() => {
+              t.action.onClick();
+              setToasts(ts => ts.filter(x => x.id !== t.id));
+            }}>{t.action.label}</button>
+          ) : null}
           <button className="toast__close"
             aria-label="Fechar notificação"
             onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}>
