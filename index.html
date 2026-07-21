@@ -7,6 +7,10 @@
   <meta name="robots" content="noindex, nofollow">
   <title>VP Gestão · VerticalParts</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="colors_and_type.css">
   <link rel="stylesheet" href="styles/app.css?v=4">
   <link rel="stylesheet" href="styles/modules.css">
@@ -39,12 +43,19 @@
   <div id="root"></div>
   <div id="vp-boot" style="
     position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:16px;z-index:9999;font-family:sans-serif;">
-    <img src="assets/logo-mark-yellow.png" alt="" style="width:48px;opacity:.9"/>
-    <div style="font-size:13px;font-weight:700;letter-spacing:.08em;color:#111;">VP GESTÃO</div>
-    <div style="width:32px;height:32px;border:3px solid #f0f0f0;border-top-color:#f5c400;
-      border-radius:50%;animation:vp-spin .7s linear infinite;"></div>
-    <div style="font-size:11px;color:#999;letter-spacing:.05em;">Carregando…</div>
+    align-items:center;justify-content:center;gap:16px;z-index:9999;font-family:sans-serif;
+    text-align:center;padding:24px;">
+    <p style="font-size:13px;font-weight:700;letter-spacing:.08em;color:#64748b;
+      text-transform:uppercase;margin:0 0 4px;">Gestão de Importação</p>
+    <video id="vp-boot-video" src="assets/boot-video.mp4" autoplay muted playsinline
+      style="width:100%;max-width:360px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.08);"></video>
+    <p style="font-family:'Poppins',sans-serif;font-weight:300;font-size:26px;letter-spacing:.03em;
+      color:#C99E00;margin:16px 0 0;">VP GESTÃO</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;">
+      <div style="width:16px;height:16px;border:2px solid #f0f0f0;border-top-color:#C99E00;
+        border-radius:50%;animation:vp-spin .7s linear infinite;"></div>
+      <span style="font-size:11px;color:#999;letter-spacing:.05em;">Carregando…</span>
+    </div>
   </div>
   <style>@keyframes vp-spin{to{transform:rotate(360deg)}}</style>
 
@@ -150,6 +161,6 @@
   <script type="text/babel" src="src/vp-copiloto.jsx?v=1"></script>
 
   <!-- Main app last -->
-  <script type="text/babel" src="src/app.jsx?v=20"></script>
+  <script type="text/babel" src="src/app.jsx?v=21"></script>
 </body>
 </html>
