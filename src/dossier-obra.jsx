@@ -3,6 +3,106 @@
    Mostra: histórico, documentos, responsáveis, pendências, próximas ações
    ============================================================ */
 
+const DOSSIER_STATUS_COLOR = {
+  'Lead qualificado': '#999',
+  'Dossier criado': '#0066cc',
+  'Análise técnica': '#0066cc',
+  'Precificação': '#ff9900',
+  'Proposta enviada': '#ff9900',
+  'Contrato assinado': '#00aa00',
+  'Importação': '#0066cc',
+  'Homologação instalador': '#ff9900',
+  'Instalação': '#ff6600',
+  'DataBook': '#00aa00',
+  'Entregue': '#00aa00',
+  'Manutenção preventiva': '#0066cc',
+};
+
+/* ---------- Status de Obras — visão consolidada de todos os Dossiês ---------- */
+function ObrasStatusPage({ setRoute, setSubsel }) {
+  const [obras, setObras] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [statusFiltro, setStatusFiltro] = React.useState('Todos');
+  const statusFlow = (window.__DOSSIER && window.__DOSSIER.STATUS_FLOW) || [];
+  const statuses = ['Todos', ...statusFlow];
+
+  const reload = () => {
+    setLoading(true);
+    window.__DOSSIER.listar()
+      .then((data) => setObras(data || []))
+      .catch((e) => window.toast('Erro ao carregar obras: ' + e.message, 'error'))
+      .finally(() => setLoading(false));
+  };
+  React.useEffect(() => { reload(); }, []);
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--fg3)', fontSize: 13 }}>Carregando…</div>;
+
+  const rows = obras.filter((o) => statusFiltro === 'Todos' || o.status_master === statusFiltro);
+  const abrirDossier = (o) => { setSubsel && setSubsel(o.id); setRoute('dossier-obra'); };
+
+  return (
+    <div className="page fade-in">
+      <div className="page-head">
+        <div className="page-head__l">
+          <div className="page-head__eyebrow"><span className="vp-rule"/>Engenharia · Dossiê da Obra</div>
+          <h1 className="page-head__title">Status de Obras</h1>
+          <p className="page-head__sub">Visão consolidada de todas as obras em andamento — onde cada uma está parada e quem é o responsável.</p>
+        </div>
+      </div>
+
+      <div className="tbar">
+        <div className="seg" style={{ flexWrap: 'wrap' }}>
+          {statuses.map((s) => (
+            <button key={s} className={statusFiltro === s ? 'is-active' : ''} onClick={() => setStatusFiltro(s)}>{s}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="table-wrap">
+        <table className="t">
+          <thead><tr>
+            <th>ID</th>
+            <th>Prédio / Obra</th>
+            <th>Cliente</th>
+            <th>Equipamento</th>
+            <th>Local</th>
+            <th>Status</th>
+            <th>Criado em</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={99} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--fg3)', fontSize: 13 }}>
+                Nenhuma obra encontrada.
+              </td></tr>
+            )}
+            {rows.map((o) => (
+              <tr key={o.id} onClick={() => abrirDossier(o)} style={{ cursor: 'pointer' }}>
+                <td><span className="mono" style={{ fontSize: 11, color: 'var(--fg3)' }}>{o.id}</span></td>
+                <td className="cell-main">{o.building_name || '—'}</td>
+                <td>{o.client_name || '—'}</td>
+                <td style={{ textTransform: 'capitalize' }}>{o.equip_type || '—'}</td>
+                <td>{o.city && o.state ? `${o.city}, ${o.state}` : '—'}</td>
+                <td>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    fontSize: 12, fontWeight: 600, color: DOSSIER_STATUS_COLOR[o.status_master] || '#666',
+                  }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: DOSSIER_STATUS_COLOR[o.status_master] || '#666' }}/>
+                    {o.status_master || '—'}
+                  </span>
+                </td>
+                <td>{o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '—'}</td>
+                <td><Button variant="ghost" size="sm" icon="chevRight"/></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function DossierObraPage({ dossierId, setRoute }) {
   const [dossier, setDossier] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -33,23 +133,7 @@ function DossierObraPage({ dossierId, setRoute }) {
     return <div style={{ padding: 32, textAlign: 'center' }}>❌ Dossier não encontrado</div>;
   }
 
-  const statusColor = (status) => {
-    const colors = {
-      'Lead qualificado': '#999',
-      'Dossier criado': '#0066cc',
-      'Análise técnica': '#0066cc',
-      'Precificação': '#ff9900',
-      'Proposta enviada': '#ff9900',
-      'Contrato assinado': '#00aa00',
-      'Importação': '#0066cc',
-      'Homologação instalador': '#ff9900',
-      'Instalação': '#ff6600',
-      'DataBook': '#00aa00',
-      'Entregue': '#00aa00',
-      'Manutenção preventiva': '#0066cc'
-    };
-    return colors[status] || '#666';
-  };
+  const statusColor = (status) => DOSSIER_STATUS_COLOR[status] || '#666';
 
   const indicePossivel = window.__DOSSIER.STATUS_FLOW.indexOf(dossier.status_master);
   const progressoPct = ((indicePossivel + 1) / window.__DOSSIER.STATUS_FLOW.length) * 100;

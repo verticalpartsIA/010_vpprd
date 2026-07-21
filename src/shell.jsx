@@ -2,8 +2,8 @@
    shell.jsx — Sidebar + Header + role switcher
    ============================================================ */
 
-/* Ordem segue o workflow operacional: pré-venda → contrato → engenharia →
-   importação/logística → instalação & entrega. Financeiro é transversal. */
+/* Ordem segue o workflow operacional: pré-venda → contrato/importação/suprimentos →
+   engenharia → RH → logística → admin. ADM/Financeiro é transversal. */
 const NAV_GROUPS = [
   { label: "Geral", items: [
     { id: "dashboard", label: "Dashboard", icon: "home" },
@@ -11,44 +11,43 @@ const NAV_GROUPS = [
   ]},
   { label: "Comercial", items: [
     { id: "leads", label: "Leads", icon: "flag" },
-    { id: "cotacoes", label: "Cotações China", icon: "globe" },
-    { id: "precificacao", label: "Precificação", icon: "calculator", restrict: ["financeiro", "admin"] },
-  ]},
-  { label: "Jurídico", sublabel: "Propostas & Contratos", items: [
-    { id: "juridico", label: "Jurídico", icon: "scale" },
+    { id: "formularios", label: "Formulários", icon: "layers" },
     { id: "propostas", label: "Propostas", icon: "proposal" },
+    { id: "cotacoes", label: "Cotações China", icon: "globe" },
+  ]},
+  { label: "ADM/ Financeiro", items: [
+    { id: "precificacao", label: "Precificação", icon: "calculator", restrict: ["financeiro", "admin"] },
+    { id: "financeiro", label: "Gatilhos & Prazo Reverso", icon: "dollar", restrict: ["financeiro", "admin"] },
+  ]},
+  { label: "Jurídico | Importação | Suprimentos", sublabel: "Contratos, Siscomex & Compras", items: [
+    { id: "juridico", label: "Jurídico", icon: "scale" },
     { id: "contrato-venda-equipamentos", label: "Contrato Venda de Equipamentos", icon: "fileText" },
-    { id: "contrato-instalador", label: "Contrato Instalador", icon: "hardhat" },
-  ]},
-  { label: "Engenharia", items: [
-    { id: "engenharia", label: "Engenharia", icon: "ruler" },
-    { id: "eng-configurador", label: "Projeto de Equipamento", icon: "grid" },
-    { id: "desenho-tecnico", label: "Desenho Técnico ER|ES", icon: "ruler" },
-    { id: "ficha-tecnica", label: "Ficha Técnica", icon: "fileText" },
     { id: "ncm-catalogo", label: "Catálogo de Produtos", icon: "fileSearch" },
-  ]},
-  { label: "Logística", items: [
     { id: "importacao", label: "Importação", icon: "ship" },
     { id: "compras", label: "Compras Nacional", icon: "truck" },
   ]},
-  { label: "Instalação & Entrega", items: [
+  { label: "Engenharia", items: [
+    { id: "engenharia", label: "Engenharia", icon: "ruler" },
+    { id: "eng-configurador", label: "Projetos Elevadores", icon: "grid" },
+    { id: "desenho-tecnico", label: "Projetos ER/Es", icon: "ruler" },
+    { id: "ficha-tecnica", label: "Ficha Técnica", icon: "fileText" },
+    { id: "contrato-instalador", label: "Contrato Instalador", icon: "hardhat" },
     { id: "vistorias", label: "Vistorias de Obras", icon: "search" },
     { id: "instalacao", label: "Instalação em Campo", icon: "hardhat" },
+    { id: "status-obras", label: "Status de Obras", icon: "building" },
     { id: "art", label: "ART", icon: "scale" },
     { id: "cronograma", label: "Cronograma", icon: "clock" },
     { id: "databook", label: "Data Book & Termo", icon: "fileSearch" },
-    { id: "handover", label: "Handover & Pós-venda", icon: "package" },
-  ]},
-  { label: "Financeiro", items: [
-    { id: "financeiro", label: "Gatilhos & Prazo", icon: "dollar", restrict: ["financeiro", "admin"] },
-    { id: "comissoes", label: "Comissões", icon: "award", restrict: ["financeiro", "admin"] },
+    { id: "handover", label: "Entrega Final", icon: "package" },
   ]},
   { label: "Recursos Humanos", items: [
-    { id: "rh-homologacao", label: "Homologação de Parceiros", icon: "users", restrict: ["admin"] },
+    { id: "rh-homologacao", label: "Homologação de Parceiros Instaladores", icon: "users", restrict: ["admin"] },
   ]},
-  { label: "Admin", items: [
+  /* Seção nova, intencionalmente vazia — reservada para uso futuro. */
+  { label: "Logística", items: [], empty: true },
+  { label: "Portal Admin", items: [
     { id: "logs", label: "Logs de Atividade", icon: "history", restrict: ["admin"] },
-    { id: "configuracoes", label: "Configurações", icon: "settings", restrict: ["admin"] },
+    { id: "configuracoes", label: "Configurações do Sistema", icon: "settings", restrict: ["admin"] },
   ]},
 ];
 
@@ -81,13 +80,21 @@ function Sidebar({ route, setRoute, role, collapsed, onToggle }) {
       <div className="sidebar__scroll">
         {NAV_GROUPS.map((group) => {
           const items = group.items.filter(filterVisible);
-          if (!items.length) return null;
+          /* Seção com `empty: true` é placeholder proposital (ex.: Logística) —
+             mostra o label mesmo sem itens. Seção comum sem itens visíveis
+             (todos ocultados pela role atual) continua oculta por completo. */
+          if (!items.length && !group.empty) return null;
           return (
             <div className="sidebar__group" key={group.label}>
               <div className="sidebar__group-label">
                 <span>{group.label}</span>
                 {group.sublabel ? <span className="sidebar__group-sublabel">{group.sublabel}</span> : null}
               </div>
+              {!items.length && group.empty && (
+                <div className="nav-item nav-item--empty" style={{ color: 'var(--fg3)', cursor: 'default', fontStyle: 'italic' }}>
+                  <span className="nav-item__label">Em breve</span>
+                </div>
+              )}
               {items.map((item) => {
                 const Active = React.createElement(Icon[item.icon] || Icon.bolt);
                 return (

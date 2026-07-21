@@ -7,7 +7,9 @@ const ROUTE_TITLE = {
   dashboard: "Dashboard",
   leads: "Pipeline de Leads",
   "lead-detail": "Detalhe de Lead",
+  formularios: "Formulários",
   "dossier-obra": "Dossier da Obra",
+  "status-obras": "Status de Obras",
   cotacoes: "Cotações China",
   "cotacao-detail": "Detalhe de Cotação",
   precificacao: "Precificação",
@@ -27,6 +29,7 @@ const ROUTE_TITLE = {
   art: "ART de Instalação",
   cronograma: "Cronograma de Instalação",
   databook: "Data Book & Termo",
+  handover: "Entrega Final",
   importacao: "Importação",
   "importacao-detail": "Detalhe de Embarque",
   "importacao-rastreamento": "Rastreamento de Navios",
@@ -159,7 +162,9 @@ function App() {
       case "dashboard": return <Dashboard role={role} setRoute={setRoute}/>;
       case "leads": return <LeadsPage setRoute={setRoute} setSubsel={setSubsel}/>;
       case "lead-detail": return <LeadDetail lead={subsel} setRoute={setRoute} setSubsel={setSubsel}/>;
+      case "formularios": return <FormulariosPage setRoute={setRoute}/>;
       case "dossier-obra": return <DossierObraPage dossierId={subsel} setRoute={setRoute}/>;
+      case "status-obras": return <ObrasStatusPage setRoute={setRoute} setSubsel={setSubsel}/>;
       case "cotacoes": return <CotacoesPage setRoute={setRoute} setSubsel={setSubsel}/>;
       case "cotacao-detail": return <CotacaoDetail cot={subsel} setRoute={setRoute}/>;
       case "precificacao": return <PrecificacaoPage setRoute={setRoute} setSubsel={setSubsel}/>;

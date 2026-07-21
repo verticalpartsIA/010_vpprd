@@ -785,6 +785,19 @@ function ModalNovaCotacao({ onClose, onSaved, prefill = null }) {
   );
 }
 
+/* ---------- FORMULÁRIOS (placeholder — estrutura interna vem em sessão futura) ---------- */
+function FormulariosPage({ setRoute }) {
+  return (
+    <EmptyStateRedirect
+      icon="layers"
+      title="Formulários"
+      message="Coleta de dados por tipo de equipamento antes da cotação — Elevador, Escada Rolante, Esteira Rolante, Modernização Elevador, Modernização Escadas e Esteiras, Máquina de Tração, Quadro de Comando e Portas. Em construção."
+      ctaLabel="Ir para Leads"
+      onCta={() => setRoute('leads')}
+    />
+  );
+}
+
 /* ---------- COTAÇÕES China ---------- */
 function CotacoesPage({ setRoute, setSubsel }) {
   const [cotacoes, setCotacoes] = React.useState([]);
