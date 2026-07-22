@@ -49,8 +49,8 @@ function FEField({ label, children, span }) {
     </div>
   );
 }
-function FEInput({ value, onChange, placeholder, type = 'text', disabled }) {
-  return <input className="input" type={type} value={value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled}/>;
+function FEInput({ value, onChange, placeholder, type = 'text', disabled, onBlur }) {
+  return <input className="input" type={type} value={value ?? ''} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder} disabled={disabled}/>;
 }
 function FESelect({ value, onChange, options, placeholder, disabled }) {
   return (
@@ -73,7 +73,7 @@ function FECheck({ label, checked, onChange }) {
 /* Endereço estruturado (Logradouro/Complemento/Bairro/CEP/Cidade/UF) — usado
    tanto pro endereço do cliente (prefixo "endereco_") quanto da obra
    (prefixo "endereco_obra_"), mesmos nomes de coluna do banco. */
-function FEEndereco({ prefix, header, setH, requiredLogradouro }) {
+function FEEndereco({ prefix, header, setH, requiredLogradouro, onBuscarCep }) {
   const k = (suf) => `${prefix}${suf}`;
   return (
     <div className="grid-3" style={{ gap: 12 }}>
@@ -87,7 +87,7 @@ function FEEndereco({ prefix, header, setH, requiredLogradouro }) {
         <FEInput value={header[k('bairro')]} onChange={setH(k('bairro'))} placeholder="Jardim Paraíso"/>
       </FEField>
       <FEField label="CEP">
-        <FEInput value={header[k('cep')]} onChange={setH(k('cep'))} placeholder="07140-000"/>
+        <FEInput value={header[k('cep')]} onChange={setH(k('cep'))} placeholder="07140-000" onBlur={() => onBuscarCep?.(header[k('cep')])}/>
       </FEField>
       <FEField label="Cidade">
         <FEInput value={header[k('cidade')]} onChange={setH(k('cidade'))} placeholder="Guarulhos"/>
@@ -240,6 +240,49 @@ function FormularioElevadorForm({ formularioId, publicMode, onSaved, onVoltar })
   }, [formularioId]);
 
   const setH = (k) => (v) => setHeader((h) => ({ ...h, [k]: v }));
+
+  /* Autopreenchimento por CEP — melhor fonte, pois não depende de o CNPJ
+     "bater" com o endereço real. Preenche mas deixa os campos editáveis. */
+  const buscarCepEPreencher = (prefix) => async (cepRaw) => {
+    if (!window.EnderecoAPI?.isCepValido(cepRaw)) return;
+    try {
+      const dados = await window.EnderecoAPI.buscarCEP(cepRaw);
+      setHeader((h) => ({
+        ...h,
+        [`${prefix}logradouro`]: dados.logradouro || h[`${prefix}logradouro`],
+        [`${prefix}bairro`]: dados.bairro || h[`${prefix}bairro`],
+        [`${prefix}cidade`]: dados.cidade || h[`${prefix}cidade`],
+        [`${prefix}estado`]: dados.estado || h[`${prefix}estado`],
+      }));
+    } catch (e) {
+      window.toast?.(e.message, 'warning');
+    }
+  };
+
+  /* Autopreenchimento por CNPJ — preenche o formulário inteiro do cliente,
+     mas o endereço pode não bater com o real (por isso o CEP acima é a via
+     preferencial), então tudo continua editável manualmente. */
+  const buscarCnpjEPreencher = async (cnpjRaw) => {
+    if (!window.EnderecoAPI?.isCnpjValido(cnpjRaw)) return;
+    try {
+      const dados = await window.EnderecoAPI.buscarCNPJ(cnpjRaw);
+      setHeader((h) => ({
+        ...h,
+        razao_social: dados.razao_social || h.razao_social,
+        telefone: h.telefone || dados.telefone,
+        endereco_logradouro: dados.endereco.logradouro || h.endereco_logradouro,
+        endereco_complemento: dados.endereco.complemento || h.endereco_complemento,
+        endereco_bairro: dados.endereco.bairro || h.endereco_bairro,
+        endereco_cep: dados.endereco.cep || h.endereco_cep,
+        endereco_cidade: dados.endereco.cidade || h.endereco_cidade,
+        endereco_estado: dados.endereco.estado || h.endereco_estado,
+      }));
+      window.toast?.('Dados do CNPJ preenchidos automaticamente.', 'success');
+    } catch (e) {
+      window.toast?.(e.message, 'warning');
+    }
+  };
+
   const setUnidade = (idx) => (u) => setUnidades((arr) => arr.map((x, i) => (i === idx ? u : x)));
   const addUnidade = () => setUnidades((arr) => [...arr, feNovaUnidade(`E${arr.length + 1}`)]);
   const removeUnidade = (idx) => setUnidades((arr) => (arr.length > 1 ? arr.filter((_, i) => i !== idx) : arr));
@@ -344,7 +387,7 @@ function FormularioElevadorForm({ formularioId, publicMode, onSaved, onVoltar })
             <FEField label="Nome / Razão Social *" span="2"><FEInput value={header.razao_social} onChange={setH('razao_social')} placeholder="Nome do cliente"/></FEField>
             {header.tipo_pessoa === 'PF'
               ? <FEField label="CPF"><FEInput value={header.cpf} onChange={setH('cpf')} placeholder="000.000.000-00"/></FEField>
-              : <FEField label="CNPJ"><FEInput value={header.cnpj} onChange={setH('cnpj')} placeholder="00.000.000/0000-00"/></FEField>}
+              : <FEField label="CNPJ"><FEInput value={header.cnpj} onChange={setH('cnpj')} placeholder="00.000.000/0000-00" onBlur={() => buscarCnpjEPreencher(header.cnpj)}/></FEField>}
             <FEField label="Inscrição Estadual"><FEInput value={header.inscricao_estadual} onChange={setH('inscricao_estadual')} disabled={header.tipo_pessoa === 'PF'}/></FEField>
             <FEField label="Contribuinte de ICMS?"><FESelect value={header.contribuinte_icms === '' ? '' : String(header.contribuinte_icms)} onChange={(v) => setH('contribuinte_icms')(v === '' ? '' : v === 'true')} options={[{ value: 'true', label: 'Sim' }, { value: 'false', label: 'Não' }]}/></FEField>
             <FEField label="Telefone"><FEInput value={header.telefone} onChange={setH('telefone')}/></FEField>
@@ -352,7 +395,7 @@ function FormularioElevadorForm({ formularioId, publicMode, onSaved, onVoltar })
           </div>
           <div>
             <div className="up-eyebrow muted" style={{ marginBottom: 8 }}>Endereço</div>
-            <FEEndereco prefix="endereco_" header={header} setH={setH}/>
+            <FEEndereco prefix="endereco_" header={header} setH={setH} onBuscarCep={buscarCepEPreencher('endereco_')}/>
           </div>
           <div className="grid-3" style={{ gap: 12 }}>
             <FEField label="Cidade da obra *"><FEInput value={header.local_obra_cidade} onChange={setH('local_obra_cidade')}/></FEField>
@@ -378,7 +421,7 @@ function FormularioElevadorForm({ formularioId, publicMode, onSaved, onVoltar })
               {header.endereco_obra_diferente && (
                 <div>
                   <div className="up-eyebrow muted" style={{ marginBottom: 8 }}>Endereço da obra</div>
-                  <FEEndereco prefix="endereco_obra_" header={header} setH={setH} requiredLogradouro/>
+                  <FEEndereco prefix="endereco_obra_" header={header} setH={setH} requiredLogradouro onBuscarCep={buscarCepEPreencher('endereco_obra_')}/>
                 </div>
               )}
             </div>
