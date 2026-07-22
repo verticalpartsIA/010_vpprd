@@ -9,9 +9,40 @@
 
 const express = require('express');
 const path    = require('path');
+const { execSync } = require('child_process');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+
+/* ---------- /version.json (aviso de atualização — ver src/version-check.js) ----------
+   O deploy real é o "git pull" automático do hPanel (Hostinger), sem etapa
+   de build — por isso NÃO dá pra confiar em gravar version.json só na hora
+   do build (o workflow .github/workflows/deploy.yml faz isso, mas é
+   redundante e pode nem ser o mecanismo usado, e nem sempre reinicia o
+   processo Node). Em vez disso, lê o HEAD do git direto do repositório
+   (que o hPanel mantém sempre atualizado) a cada request — com um cache
+   curto pra não rodar `git` a cada carregamento de página. */
+const VERSION_CACHE_MS = 30 * 1000;
+let versionCache = null;
+let versionCacheAt = 0;
+function readVersionInfo() {
+  const now = Date.now();
+  if (versionCache && now - versionCacheAt < VERSION_CACHE_MS) return versionCache;
+  try {
+    const buildTime = execSync('git log -1 --format=%cI', { cwd: __dirname }).toString().trim();
+    const commit = execSync('git rev-parse HEAD', { cwd: __dirname }).toString().trim();
+    versionCache = { buildTime, commit };
+  } catch (e) {
+    if (!versionCache) versionCache = { buildTime: new Date().toISOString(), commit: 'unknown' };
+    console.warn('[server] Não foi possível ler a versão do git — usando fallback:', e.message);
+  }
+  versionCacheAt = now;
+  return versionCache;
+}
+app.get('/version.json', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.json(readVersionInfo());
+});
 
 app.use(express.json({ limit: '4mb' }));
 
