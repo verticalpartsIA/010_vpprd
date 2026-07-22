@@ -291,9 +291,21 @@ function App() {
   );
 }
 
-// Remove o spinner de boot assim que o React estiver pronto
+// Mantém o vídeo de abertura na tela até ele terminar (ou 12s, o que vier
+// primeiro) — dá tempo do usuário ver a marca mesmo quando o carregamento
+// real (CDNs + Babel) é rápido. Erro no vídeo nunca trava o usuário aqui.
 const bootEl = document.getElementById('vp-boot');
-if (bootEl) bootEl.remove();
+const bootVideo = document.getElementById('vp-boot-video');
+function removeBoot() {
+  if (bootEl && bootEl.parentNode) bootEl.remove();
+}
+if (bootVideo) {
+  bootVideo.addEventListener('ended', removeBoot);
+  bootVideo.addEventListener('error', removeBoot);
+  setTimeout(removeBoot, 12000);
+} else {
+  removeBoot();
+}
 
 // Timeout de emergência: se tudo ficar travado, força o app a renderizar
 setTimeout(() => {
