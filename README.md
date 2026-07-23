@@ -599,3 +599,13 @@ git push origin main
 ---
 
 *Documentação gerada em 24/05/2026 — Claude Sonnet 4.6*
+
+---
+
+## Contributors
+
+- Gelson Simões — criador e responsável pelas soluções VerticalParts
+
+---
+
+**Feito por Gelson Simões**
