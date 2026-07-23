@@ -204,12 +204,32 @@ function fillFor(data, eq, sectionId) {
   return { kind: "full", label: "✓ ok" };
 }
 
-function PropostaEditor({ setRoute }) {
+/* Mescla o prefill (cliente/obra/valores vindos da Precificação) por cima do
+   default — objetos aninhados mesclam campo a campo, arrays (especificacoes)
+   são substituídos por inteiro quando o prefill traz um. */
+function deepMergeProposta(base, prefill) {
+  const out = { ...base };
+  Object.keys(prefill).forEach((k) => {
+    if (k === '__prefillFromPrecificacao') return;
+    const v = prefill[k];
+    if (v && typeof v === 'object' && !Array.isArray(v) && base[k] && typeof base[k] === 'object' && !Array.isArray(base[k])) {
+      out[k] = deepMergeProposta(base[k], v);
+    } else {
+      out[k] = v;
+    }
+  });
+  return out;
+}
+
+function PropostaEditor({ setRoute, subsel }) {
   const LS_KEY = "vpprd.proposta-draft";
+  const prefill = subsel && subsel.__prefillFromPrecificacao ? subsel : null;
   const [eq, setEq] = React.useState(() => {
+    if (prefill) return 'elevador';
     try { return localStorage.getItem("vpprd.proposta-eq") || "elevador"; } catch (e) { return "elevador"; }
   });
   const [data, setData] = React.useState(() => {
+    if (prefill) return deepMergeProposta(makeDefaultProposta(), prefill);
     try {
       const saved = localStorage.getItem(LS_KEY);
       if (saved) return JSON.parse(saved);

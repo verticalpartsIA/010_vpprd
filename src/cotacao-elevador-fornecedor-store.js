@@ -40,6 +40,19 @@
     return _ipCache;
   }
 
+  /* ---------- Categorias de produto — hoje só "elevador" (Glarie) tem
+     formulário técnico implementado; as demais existem no modelo de dados
+     pra quando entrarem os próximos fornecedores (mesmo sistema, sem criar
+     um domínio novo tipo o Pedido a Fornecedor de peças). ---------- */
+  const CATEGORIAS_PRODUTO = [
+    { value: 'elevador', label: 'Elevador' },
+    { value: 'escada_rolante', label: 'Escada Rolante' },
+    { value: 'esteira_rolante', label: 'Esteira Rolante' },
+    { value: 'quadro_comando', label: 'Quadro de Comando' },
+    { value: 'porta', label: 'Porta' },
+    { value: 'cabine', label: 'Cabine' },
+  ];
+
   /* ---------- Rótulos (nomenclatura do fornecedor) — usados na tela pública
      e no resumo interno, a partir dos MESMOS valores já salvos na Unidade. ---------- */
   const CEF_LIFT_MODEL = {
@@ -108,7 +121,7 @@
      a mesma numeração que já vem sendo continuada desde a planilha histórica) —
      é o número que identifica o projeto pro fornecedor, equivalente ao "Project
      Name" que a Glarie usa nas próprias cotações. */
-  async function gerar(formularioElevadorId, unidades, fornecedor, numeroCotacao) {
+  async function gerar(formularioElevadorId, unidades, fornecedor, numeroCotacao, categoriaProduto) {
     const c = sb(); if (!c) throw new Error('Supabase não carregado');
     const numero_documento = await gerarNumero();
     const tipo_formulario = tipoFormularioPara(unidades[0].tipo);
@@ -117,6 +130,7 @@
       token: shortToken(),
       formulario_elevador_id: formularioElevadorId,
       fornecedor,
+      categoria_produto: categoriaProduto || 'elevador',
       tipo_formulario,
       unidade_ids: unidades.map((u) => u.id),
       dados_envio: buildDadosEnvio(unidades, numeroCotacao),
@@ -186,6 +200,7 @@
 
   window.CotacaoElevadorFornecedorStore = {
     cotacaoUrl, tipoFormularioPara, liftModelLabel, machineRoomLabel, controleLabel,
+    CATEGORIAS_PRODUTO,
     gerar, marcarEnviado, listarPorFormulario,
     getByToken, marcarVisualizado, salvarResposta, getPublicIP,
   };

@@ -467,7 +467,7 @@ function FECotacaoFornecedorModal({ formularioId, unidades, numeroCotacao, onClo
     setEnviando(key);
     try {
       let cot = cotacaoDoGrupo(grupo);
-      if (!cot) cot = await store.gerar(formularioId, grupo.unidades, grupo.fornecedor, numeroCotacao);
+      if (!cot) cot = await store.gerar(formularioId, grupo.unidades, grupo.fornecedor, numeroCotacao, 'elevador');
       const url = store.cotacaoUrl(cot.token);
       const numeroTxt = numeroCotacao != null ? ` — Cotação Nº ${numeroCotacao}` : '';
       const msg = `Solicitação de cotação técnica ${cot.numero_documento}${numeroTxt} — VerticalParts\n` +

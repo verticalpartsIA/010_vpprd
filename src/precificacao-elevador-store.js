@@ -41,8 +41,8 @@
   async function listarPendentes() {
     const c = sb(); if (!c) throw new Error('Supabase não carregado');
     const { data: cots, error } = await c.from('cotacoes_elevador_fornecedor')
-      .select('id, numero_documento, fornecedor, formulario_elevador_id, status, responded_at')
-      .eq('status', 'respondido').order('responded_at', { ascending: false });
+      .select('id, numero_documento, fornecedor, formulario_elevador_id, status, responded_at, categoria_produto')
+      .eq('status', 'respondido').eq('categoria_produto', 'elevador').order('responded_at', { ascending: false });
     if (error) throw error;
     const formularioIds = [...new Set((cots || []).map((c2) => c2.formulario_elevador_id))];
     if (!formularioIds.length) return [];

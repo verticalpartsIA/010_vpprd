@@ -12,8 +12,8 @@ const NAV_GROUPS = [
   { label: "Comercial", items: [
     { id: "leads", label: "Leads", icon: "flag" },
     { id: "formularios", label: "Formulários", icon: "layers" },
-    { id: "propostas", label: "Propostas", icon: "proposal" },
     { id: "cotacoes", label: "Cotações China", icon: "globe" },
+    { id: "propostas", label: "Propostas", icon: "proposal" },
   ]},
   { label: "ADM/ Financeiro", items: [
     { id: "precificacao", label: "Precificação", icon: "calculator", restrict: ["financeiro", "admin"] },
