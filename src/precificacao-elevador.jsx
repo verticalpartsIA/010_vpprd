@@ -26,7 +26,7 @@ function PZInput({ value, onChange, type = 'text', placeholder, disabled }) {
 }
 
 /* ---------- Lista — cotações de fornecedor já respondidas ---------- */
-function PrecificacaoElevadorPage({ setRoute, modo, setModo }) {
+function PrecificacaoElevadorPage({ setRoute, setSubsel, modo, setModo }) {
   const [pendentes, setPendentes] = React.useState(null);
   const [pzId, setPzId] = React.useState(null);
 
@@ -46,7 +46,7 @@ function PrecificacaoElevadorPage({ setRoute, modo, setModo }) {
   };
 
   if (pzId) {
-    return <PrecificacaoElevadorDetalhe id={pzId} onVoltar={() => { setPzId(null); carregar(); }}/>;
+    return <PrecificacaoElevadorDetalhe id={pzId} onVoltar={() => { setPzId(null); carregar(); }} setRoute={setRoute} setSubsel={setSubsel}/>;
   }
 
   return (
@@ -88,7 +88,7 @@ function PrecificacaoElevadorPage({ setRoute, modo, setModo }) {
 }
 
 /* ---------- Detalhe — motor de cálculo ---------- */
-function PrecificacaoElevadorDetalhe({ id, onVoltar }) {
+function PrecificacaoElevadorDetalhe({ id, onVoltar, setRoute, setSubsel }) {
   const [pz, setPz] = React.useState(null);
   const [calculando, setCalculando] = React.useState(false);
   const [salvando, setSalvando] = React.useState(false);
@@ -154,6 +154,69 @@ function PrecificacaoElevadorDetalhe({ id, onVoltar }) {
   const difal = pz.difal && pz.difal.mensagem ? pz.difal : null;
   const params = pz.parametros_fiscais_snapshot || {};
 
+  /* "Financeiro termina a Precificação e volta para Propostas" — a Proposta
+     herda os dados do cliente/obra já coletados no Formulário e os valores
+     já calculados aqui, em vez de o vendedor digitar tudo de novo. */
+  const gerarProposta = async () => {
+    const c = window.__VP_SB.sb;
+    try {
+      const [{ data: formulario }, { data: cotFornecedor }] = await Promise.all([
+        c.from('formularios_elevador').select('*, clientes(*)').eq('id', pz.formulario_elevador_id).single(),
+        pz.cotacao_fornecedor_id ? c.from('cotacoes_elevador_fornecedor').select('dados_envio').eq('id', pz.cotacao_fornecedor_id).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
+      const cliente = (formulario && formulario.clientes) || {};
+      const unidadesTec = (cotFornecedor && cotFornecedor.dados_envio && cotFornecedor.dados_envio.unidades) || [];
+
+      const especificacoes = (pz.modelos || []).map((m) => {
+        const tec = unidadesTec.find((u) => u.unidade_id === m.unidadeId) || {};
+        return {
+          id: m.identificador || '', modelo: m.modelo || '', empreendimento: '', carac: '',
+          denominacao: tec.pavimentos_desc || '',
+          percurso: tec.percurso_mm ? String(tec.percurso_mm) : '',
+          capacidade: tec.capacidade_kg ? `${tec.capacidade_pessoas ? tec.capacidade_pessoas + ' Passageiros x ' : ''}${tec.capacidade_kg}Kg` : '',
+          dimensoesCaixa: (tec.caixa_largura_mm || tec.caixa_profundidade_mm) ? `${tec.caixa_largura_mm || '?'} x ${tec.caixa_profundidade_mm || '?'}mm` : '',
+          profPoço: tec.poco_mm ? String(tec.poco_mm) : '',
+          vel: tec.velocidade_ms ? String(tec.velocidade_ms) : '',
+          andaresParadasPortas: tec.paradas ? `${tec.paradas} Paradas` : '',
+          qtd: m.quantidade || 1,
+        };
+      });
+
+      const prefill = {
+        __prefillFromPrecificacao: true,
+        numero: `Cotação-${pz.numero_cotacao ?? pz.numero_documento}`,
+        cliente: {
+          nome: cliente.razao_social || '', cnpj: cliente.cnpj || '', responsavel: cliente.contato || '',
+          endereco: cliente.endereco_logradouro || '', bairro: cliente.endereco_bairro || '',
+          cidade: cliente.endereco_cidade || '', uf: cliente.endereco_estado || '', cep: cliente.endereco_cep || '',
+          email: cliente.email || '', telefone: cliente.telefone || '',
+        },
+        obra: {
+          nome: (formulario && formulario.local_obra_cidade) || '',
+          endereco: (formulario && (formulario.endereco_obra_logradouro || formulario.endereco_logradouro)) || '',
+          bairro: (formulario && (formulario.endereco_obra_bairro || formulario.endereco_bairro)) || '',
+          cidade: (formulario && formulario.local_obra_cidade) || '',
+          uf: (formulario && formulario.local_obra_estado) || '',
+          cep: (formulario && (formulario.endereco_obra_cep || formulario.endereco_cep)) || '',
+        },
+        elevador: {
+          valores: {
+            equipamento: (pz.modelos || []).map((m) => m.modelo).filter(Boolean).join(', '),
+            quantidade: String((pz.modelos || []).reduce((s, m) => s + (Number(m.quantidade) || 0), 0)),
+            valorUnit: resultado ? String(Math.round(resultado.precoVendaPorEquipamento)) : '',
+            difal: (pz.difal && pz.difal.difal_aplicavel && pz.difal.responsavel_recolhimento === 'emitente_verticalparts') ? String(Math.round(pz.difal.valor_difal)) : '',
+          },
+        },
+      };
+      if (especificacoes.length) prefill.elevador.especificacoes = especificacoes;
+
+      setSubsel(prefill);
+      setRoute('proposta-editor');
+    } catch (e) {
+      window.toast?.('Erro ao preparar a proposta: ' + e.message, 'error');
+    }
+  };
+
   return (
     <div className="page fade-in">
       <div className="page-head">
@@ -168,6 +231,7 @@ function PrecificacaoElevadorDetalhe({ id, onVoltar }) {
           <Button variant="ghost" icon="chevLeft" onClick={onVoltar}>Voltar</Button>
           <Button variant="outline" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar rascunho'}</Button>
           <Button variant="primary" icon="calculator" onClick={calcular} disabled={calculando}>{calculando ? 'Calculando…' : 'Calcular'}</Button>
+          {resultado && <Button variant="primary" icon="proposal" onClick={gerarProposta}>Gerar Proposta</Button>}
         </div>
       </div>
 
